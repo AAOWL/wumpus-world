@@ -17,5 +17,5 @@
 ## 가상환경 설정
 ```bash
 python -m venv venv
-source venv/bin/activate  # 윈도우는 .\venv\Scripts\activate
+source venv/Scripts/activate  # 윈도우는 .\venv\Scripts\activate
 pip install -r requirements.txt
