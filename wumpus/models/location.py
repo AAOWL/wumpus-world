@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import List
+
 from wumpus.models.direction import Direction
 from wumpus.models.action import Action
 from wumpus.models.percept import Percept
@@ -23,3 +25,18 @@ class Location:
         """주어진 방향으로 한 칸 이동한 새 Location객체 반환"""
         dr, dc = direction.delta
         return Location(self.row + dr, self.col + dc)
+    
+    def get_adjacent(self) -> List['Location']:
+        """
+        인접한 4방향 위치 목록 반환
+        정직하게 반환만 하므로, 가져가서 처리해야함.
+        
+        adjacent[0] = 북
+        adjacent[1] = 동
+        adjacent[2] = 남
+        adjacent[3] = 서
+        """
+        adjacent = []
+        for d in Direction:
+            adjacent.append(self.move(d))
+        return adjacent

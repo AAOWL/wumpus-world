@@ -1,50 +1,73 @@
 from dataclasses import dataclass, field
-from typing import Set
+from typing import List
 
 from wumpus.models.direction import Direction
 from wumpus.models.location import Location
 from wumpus.models.percept import Percept
     
 @dataclass
+class Knowledge_Cell:
+    """에이전트의 지식 베이스 각 칸의 상태 저장하는 데이터 클래스"""
+    visited:bool = False
+    possible_wumpus: int = 0
+    possible_pit: int = 0
+    safe:bool = False
+    wall:bool = False
+
+@dataclass
 class Knowledge_base:
     """
-    agent의 내부 모델(관측된 환경)을 저장
+    agent의 내부 모델(관측된 환경)을 2차원 배열로 저장합니다.
     """
 
     # 지도 정보
-    visited: Set[Location] = field(default_factory=set)
-    unsafe: Set[Location] = field(default_factory=set)
-    possible_wumpus: Set[Location] = field(default_factory=set)
-    possible_pit: Set[Location] = field(default_factory=set)
+    size: int = 6 
+    grid: List[List[Knowledge_Cell]] = field(default_factory=list) #각 칸이 Knowledge_Cell로 구성됨
 
+    def __post_init__(self):
+        """지식 베이스 격자 초기화"""
+        self.grid = [
+            [Knowledge_Cell() for _ in range(self.size)]
+            for _ in range(self.size)
+        ]
 
     def update_knowledge(self, location: Location, percept: Percept) -> None:
-        """현재 위치에서의 감각 정보를 바탕으로 지식 업데이트
-        
-        Args:
-            percept: 현재 위치에서의 감각 정보
-        """
-        current = location
-        
+        """현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"""
+
+        row, col = location.row, location.col
+
+         # 현재 위치는 방문했음을 표시
+        self.grid[row][col].visited = True
+        self.grid[row][col].safe = True # 현재 위치는 안전하다고 가정 (죽지 않았으므로)
+        self.grid[row][col].possible_wumpus = 0 # 현재 위치엔 왐퍼스 없음
+        self.grid[row][col].possible_pit = 0    # 현재 위치엔 구덩이 없음
+
         # 인접한 위치들 계산
-        adjacent = [current.move(d) for d in Direction]
-        valid_adjacent = [
-            loc for loc in adjacent 
-            if 1 <= loc.row <= 4 and 1 <= loc.col <= 4
-        ]
+        adjacent = location.get_adjacent() # Location 클래스에 get_adjacent 메서드 추가
         
-        # Breeze가 감지되면 인접한 위치에 Pit이 있을 수 있음
-        if percept.breeze:
-            self.possible_pit.update(valid_adjacent)
+        # 유효한 위치 추출 (visited되지 않음. wall이 아님) 
+        adjacent_locations = [loc for loc in adjacent
+                              if not self.grid[loc.row][loc.col].visited and 
+                              not self.grid[loc.row][loc.col].wall]
+
+        # Breeze, Stench 감지 시 인접 칸에 가능성 표시
+        for adj_loc in adjacent_locations:
+            adj_r, adj_c = adj_loc.row, adj_loc.col
+
+            # 방문하지 않은 칸에 대해서만 추론
+            if not self.grid[adj_r][adj_c].visited:
+                # Breeze가 존재
+                if percept.breeze:
+                    self.grid[adj_r][adj_c].possible_pit += 1
+                
+                # Breeze가 없으면 인접 칸에 Pit이 없음
+                if not percept.breeze:
+                    self.grid[adj_r][adj_c].possible_pit = 0
+
+                # Stench가 존재
+                if percept.stench:
+                    self.grid[adj_r][adj_c].possible_wumpus += 1
             
-        # Stench가 감지되면 인접한 위치에 Wumpus가 있을 수 있음
-        if percept.stench:
-            self.possible_wumpus.update(valid_adjacent)
-            
-        # 현재 위치는 안전함이 확인됨
-        if current in self.unsafe:
-            self.unsafe.remove(current)
-        
-        # 방문한 위치는 Wumpus나 Pit이 없음이 확인됨
-        self.possible_wumpus.discard(current)
-        self.possible_pit.discard(current) 
+                # Stench가 없으면 인접 칸에 Wumpus가 없음
+                if not percept.stench:
+                    self.grid[adj_r][adj_c].possible_wumpus = 0
