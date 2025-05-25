@@ -1,10 +1,11 @@
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import Set
 
 from wumpus.models.direction import Direction
 from wumpus.models.location import Location
 from wumpus.models.percept import Percept
     
+@dataclass
 class Knowledge_base:
     """
     agent의 내부 모델(관측된 환경)을 저장

@@ -6,6 +6,7 @@ from typing import Optional, Set, Dict
 from wumpus.models.action import Action
 from wumpus.models.direction import Direction
 from wumpus.models.location import Location
+from wumpus.agent.knowledge_base import Knowledge_base
 
 @dataclass
 class Agent:
@@ -26,10 +27,11 @@ class Agent:
     direction: Direction = Direction.EAST
     has_arrow: bool = True
     has_gold: bool = False
-    
+    knowledge: Knowledge_base = Knowledge_base()
+
     def __post_init__(self):
         """초기 상태 설정"""
-        self.visited.add(self.location)  # 시작 위치 방문 처리
+        self.knowledge.visited.add(self.location)  # 시작 위치 방문 처리
     
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
@@ -66,11 +68,11 @@ class Agent:
             return "벽에 부딪혔습니다."
             
         # 안전하지 않은 위치 체크
-        if new_location in self.unsafe:
+        if new_location in self.knowledge.unsafe:
             return "안전하지 않은 위치입니다."
             
         self.location = new_location
-        self.visited.add(new_location)
+        self.knowledge.visited.add(new_location)
         return None
     
     def _turn_left(self) -> None:
