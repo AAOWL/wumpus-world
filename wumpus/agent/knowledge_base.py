@@ -31,7 +31,7 @@ class Knowledge_base:
             for _ in range(self.size)
         ]
 
-    def update_knowledge(self, location: Location, percept: Percept) -> None:
+    def update_with_percept(self, location: Location, percept: Percept) -> None:
         """현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"""
 
         row, col = location.row, location.col
@@ -45,11 +45,12 @@ class Knowledge_base:
         # 인접한 위치들 계산
         adjacent = location.get_adjacent() # Location 클래스에 get_adjacent 메서드 추가
         
-        # 유효한 위치 추출 (visited되지 않음. wall이 아님, 안전하다 확인됨) 
+        # 유효한 위치 추출 (pit 또는 wumpus가 존재 할 수 있는 위치
+        # 즉 visited되지 않은 위치 and wall이 아닌 위치 and 안전하지 않은 위치
         adjacent_locations = [loc for loc in adjacent
                               if not self.grid[loc.row][loc.col].visited and 
                               not self.grid[loc.row][loc.col].wall and
-                              self.grid[loc.row][loc.col].safe]
+                              not self.grid[loc.row][loc.col].safe]
 
         # Breeze, Stench 감지 시 인접 칸에 가능성 표시
         for adj_loc in adjacent_locations:

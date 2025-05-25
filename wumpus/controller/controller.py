@@ -58,7 +58,7 @@ class Controller:
         percept = self.env.get_percept(self.agent.location)
         
         # 에이전트의 지식 업데이트
-        self.agent.kb.update_knowledge(self.agent.location, percept)
+        self.agent.kb.update_with_percept(self.agent.location, percept)
         
         # 에이전트의 다음 행동 결정
         # action = self.agent.decide_action() #아직 decide_action() 없음
