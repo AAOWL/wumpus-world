@@ -7,7 +7,7 @@
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
 
-from wumpus.models.agent import Agent
+from wumpus.agent.agent import Agent
 from wumpus.models.action import Action
 from wumpus.models.location import Location
 from wumpus.models.direction import Direction
