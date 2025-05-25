@@ -45,10 +45,11 @@ class Knowledge_base:
         # 인접한 위치들 계산
         adjacent = location.get_adjacent() # Location 클래스에 get_adjacent 메서드 추가
         
-        # 유효한 위치 추출 (visited되지 않음. wall이 아님) 
+        # 유효한 위치 추출 (visited되지 않음. wall이 아님, 안전하다 확인됨) 
         adjacent_locations = [loc for loc in adjacent
                               if not self.grid[loc.row][loc.col].visited and 
-                              not self.grid[loc.row][loc.col].wall]
+                              not self.grid[loc.row][loc.col].wall and
+                              self.grid[loc.row][loc.col].safe]
 
         # Breeze, Stench 감지 시 인접 칸에 가능성 표시
         for adj_loc in adjacent_locations:
