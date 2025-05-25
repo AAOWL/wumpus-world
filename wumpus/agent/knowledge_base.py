@@ -71,3 +71,6 @@ class Knowledge_base:
                 # Stench가 없으면 인접 칸에 Wumpus가 없음
                 if not percept.stench:
                     self.grid[adj_r][adj_c].possible_wumpus = 0
+
+                if not percept.breeze and not percept.stench:
+                     self.grid[adj_r][adj_c].safe = True
