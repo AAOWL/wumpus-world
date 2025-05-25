@@ -27,11 +27,13 @@ class Agent:
     direction: Direction = Direction.EAST
     has_arrow: bool = True
     has_gold: bool = False
-    knowledge: Knowledge_base = Knowledge_base()
+    kb: Knowledge_base = Knowledge_base()
 
     def __post_init__(self):
         """초기 상태 설정"""
-        self.knowledge.visited.add(self.location)  # 시작 위치 방문 처리
+        # 삭제예정. percept -> reasoning -> action 중, reasoning(knowledge_base.py의 update_knowledge)에서 처리할 예정
+        # self.kb.visited.add(self.location)  
+        
     
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
@@ -68,11 +70,11 @@ class Agent:
             return "벽에 부딪혔습니다."
             
         # 안전하지 않은 위치 체크
-        if new_location in self.knowledge.unsafe:
+        if not self.kb.grid[new_location.row][new_location.col].safe:
             return "안전하지 않은 위치입니다."
             
         self.location = new_location
-        self.knowledge.visited.add(new_location)
+        self.kb.grid[new_location.row][new_location.col].visited = True
         return None
     
     def _turn_left(self) -> None:
