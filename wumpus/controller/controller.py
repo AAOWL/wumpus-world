@@ -58,13 +58,13 @@ class Controller:
         percept = self.env.get_percept(self.agent.location)
         
         # 에이전트의 지식 업데이트
-        self.agent.update_knowledge(percept)
+        self.agent.kb.update_knowledge(self.agent.location, percept)
         
         # 에이전트의 다음 행동 결정
-        action = self.agent.decide_action()
+        # action = self.agent.decide_action() #아직 decide_action() 없음
         
         # 행동 수행 및 결과 처리
-        self._process_action(action)
+        # self._process_action(action)
         
         # 상태 출력
         self._print_game_state()
