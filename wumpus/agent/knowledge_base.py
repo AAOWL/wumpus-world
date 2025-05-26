@@ -34,14 +34,6 @@ class Knowledge_base:
     def update_with_percept(self, location: Location, percept: Percept, direction: Direction) -> None:
         """현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"""
 
-        row, col = location.row, location.col
-
-         # 현재 위치는 방문했음을 표시
-        self.grid[row][col].visited = True
-        self.grid[row][col].safe = True # 현재 위치는 안전하다고 가정 (죽지 않았으므로)
-        self.grid[row][col].possible_wumpus = 0 # 현재 위치엔 왐퍼스 없음
-        self.grid[row][col].possible_pit = 0    # 현재 위치엔 구덩이 없음
-
         # bump가 감지되면 agent 앞에 있는 칸을 벽으로 표시
         if percept.bump:
             dr, dc = direction.delta
@@ -49,8 +41,16 @@ class Knowledge_base:
             wall_col = col + dc
             if 0 <= wall_row < self.size and 0 <= wall_col < self.size:
                 self.grid[wall_row][wall_col].wall = True
-            return  # bump가 발생하면 더 이상 주변 cell을 탐색할 수 없음
+            return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
 
+        row, col = location.row, location.col
+
+         # 현재 위치는 방문했음을 표시
+        self.grid[row][col].visited = True
+        self.grid[row][col].safe = True # 현재 위치는 안전하다고 가정 (죽지 않았으므로)
+        self.grid[row][col].possible_wumpus = 0 # 현재 위치엔 왐퍼스 없음
+        self.grid[row][col].possible_pit = 0    # 현재 위치엔 구덩이 없음
+        
         # 인접한 위치들 계산
         adjacent = location.get_adjacent() # Location 클래스에 get_adjacent 메서드 추가
         

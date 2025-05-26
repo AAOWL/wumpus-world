@@ -74,7 +74,7 @@ class Environment:
         gold_r, gold_c = random.choice(available_cells)
         self.grid[gold_r][gold_c].has_gold = True
     
-    def get_percept(self, location: Location) -> Percept:
+    def get_percept(self, location: Location, bump: bool = False) -> Percept:
         """주어진 위치에서의 감각 정보를 반환
         
         Args:
@@ -101,7 +101,8 @@ class Environment:
             stench=stench,
             breeze=breeze,
             glitter=glitter,
-            scream=self.is_wumpus_killed
+            scream=self.is_wumpus_killed,
+            bump=bump
         )
     
     def perform_action(self, action: Action, agent_location: Location, 

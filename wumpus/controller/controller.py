@@ -54,22 +54,20 @@ class Controller:
         if self.is_game_over:
             return False
             
-        # 현재 위치에서의 감각 정보 수집
-        percept = self.env.get_percept(self.agent.location)
-        
-        # 에이전트의 지식 업데이트
-        self.agent.kb.update_with_percept(self.agent.location, percept, self.agent.direction)
-        
-        # 에이전트의 다음 행동 결정
-        # action = self.agent.decide_action() #아직 decide_action() 없음
-        
-        # 행동 수행 및 결과 처리
-        # self._process_action(action)
-        
-        # 상태 출력
+        action = Action.FORWARD  # 추후 변경
+
+        # 행동 수행, bump 여부 판단
+        success, is_bump = self._process_action(action)
+
+        # 감각 수집 (bump가 발생하면 인자로 넘겨줌)
+        percept = self.env.get_percept(self.agent.location, bump=is_bump)
+
+        # 지식 업데이트
+        self.agent.kb.update_with_percept(
+            self.agent.location, percept, self.agent.direction
+        )
+
         self._print_game_state()
-        
-        # 단계 수 증가
         self.total_steps += 1
         
         return not self.is_game_over
@@ -89,16 +87,20 @@ class Controller:
             
         return self._get_game_result()
     
-    def _process_action(self, action: Action) -> None:
+    def _process_action(self, action: Action) -> tuple[bool, bool]:
         """에이전트의 행동을 처리
         
         Args:
             action: 수행할 행동
+        Returns:
+            tuple[bool, bool]: (행동 성공 여부, bump 발생 여부)
         """
         # 환경에 행동 수행 요청
         success, message, score_delta = self.env.perform_action(
             action, self.agent.location, self.agent.direction
         )
+
+        is_bump = (action == Action.FORWARD and message == "벽에 부딪혔습니다.")
         
         # 결과 메시지 저장
         if message:
@@ -135,6 +137,8 @@ class Controller:
         # 게임 종료 조건 체크
         if self.env.is_game_over:
             self.is_game_over = True
+
+        return success, is_bump
     
     def _print_game_state(self) -> None:
         """현재 게임 상태를 출력"""
