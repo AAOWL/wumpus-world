@@ -8,6 +8,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from wumpus.models.direction import Direction
+from wumpus.models.action import Action
+from wumpus.models.percept import Percept
 
 
 @dataclass(frozen=True)
