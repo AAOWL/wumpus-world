@@ -1,7 +1,7 @@
 """Wumpus World의 에이전트를 구현한 모듈"""
 
 from dataclasses import dataclass, field
-from typing import Optional, Set, Dict
+from typing import Optional, Set, Dict, List
 
 from wumpus.models.action import Action
 from wumpus.models.direction import Direction
@@ -28,12 +28,15 @@ class Agent:
     has_arrow: bool = True
     has_gold: bool = False
     kb: Knowledge_base = Knowledge_base()
+    
+    # 지나온 길 저장하는 스택
+    path_stack: List[Location] = field(default_factory=list)
 
     def __post_init__(self):
         """초기 상태 설정"""
         # 삭제예정. percept -> reasoning -> action 중, reasoning(knowledge_base.py의 update_knowledge)에서 처리할 예정
         # self.kb.visited.add(self.location)  
-        
+        self.path_stack.append(self.location) # 처음 위치 스택에 추가
     
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
@@ -72,7 +75,10 @@ class Agent:
         # 안전하지 않은 위치 체크
         if not self.kb.grid[new_location.row][new_location.col].safe:
             return "안전하지 않은 위치입니다."
-            
+
+        # 현재 위치를 스택에 저장
+        self.path_stack.append(self.location)
+
         self.location = new_location
         self.kb.grid[new_location.row][new_location.col].visited = True
         return None
@@ -129,3 +135,26 @@ class Agent:
             return "금을 획득해야 탈출할 수 있습니다."
             
         return None
+    
+    # 더이상 진행할 수 없다면 백트래킹
+    def backtrack(self) -> Optional[str]:
+        if len(self.path_stack) <= 1:
+            return "더 이상 되돌아갈 위치가 없습니다."
+
+        self.location = self.path_stack.pop()
+        return f"{self.location}로 되돌아갔습니다."
+    
+    # path_stack을 따라 시작 지점으로 복귀
+    def backtrack_to_start(self):
+        """
+        스택을 역추적하여 시작 위치(1,1)로 되돌아감.
+        Direction은 신경쓰지 않고, agent의 위치만 순서대로 이동.
+        """
+        path_back = self.path_stack[::-1]  # 스택을 역순으로
+
+        for loc in path_back:
+            if loc == self.location:
+                continue  # 현재 위치는 제외
+
+            print(f"시작 위치로 돌아가는 중: {self.location} → {loc}")
+            self.location = loc  # 위치 이동(direction 상관X)
