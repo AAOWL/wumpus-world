@@ -27,7 +27,7 @@ class Agent:
     direction: Direction = Direction.EAST
     has_arrow: bool = True
     has_gold: bool = False
-    kb: Knowledge_base = Knowledge_base()
+    kb: Knowledge_base = field(default_factory=Knowledge_base)
     
     # 지나온 길 저장하는 스택
     path_stack: List[Location] = field(default_factory=list)
