@@ -159,7 +159,7 @@ class Agent:
             print(f"시작 위치로 돌아가는 중: {self.location} → {loc}")
             self.location = loc  # 위치 이동(direction 상관X)
 
-    def move_to_safest_adjacent_cell(self) -> Optional[str]:
+    def move_to_safest_adjacent_cell(self) -> Optional[Action]:
         """
             get_adjacent_cells() 결과를 참고하여,
             가장 위험도가 낮은 셀로 방향 회전 후 이동 시도.
@@ -171,7 +171,7 @@ class Agent:
 
         adjacent_cells = self.kb.get_adjacent_cells(self.location)
 
-        if not adjacent_cells:
+        if not adjacent_cells: 
             # backtrak 진행
             print("진행 가능한 위치가 없습니다. backtrack을 시도합니다.")
             self.backtrack()
@@ -192,7 +192,8 @@ class Agent:
         )
 
         if target_direction is None:
-            return "타겟 셀 방향 계산 실패"
+            print("타겟 셀 방향 계산 실패")
+            return
 
         # 현재 방향과 타겟 방향 일치시킬 때까지 회전 (오른쪽 우선)
         while self.direction != target_direction:
