@@ -73,8 +73,8 @@ class Agent:
             return "벽에 부딪혔습니다."
             
         # 안전하지 않은 위치 체크
-        if not self.kb.grid[new_location.row][new_location.col].safe:
-            return "안전하지 않은 위치입니다."
+        #if not self.kb.grid[new_location.row][new_location.col].safe:
+        #   return "안전하지 않은 위치입니다."
 
         # 현재 위치를 스택에 저장
         self.path_stack.append(self.location)
@@ -158,3 +158,45 @@ class Agent:
 
             print(f"시작 위치로 돌아가는 중: {self.location} → {loc}")
             self.location = loc  # 위치 이동(direction 상관X)
+
+    def move_to_safest_adjacent_cell(self) -> Optional[str]:
+        """
+            get_adjacent_cells() 결과를 참고하여,
+            가장 위험도가 낮은 셀로 방향 회전 후 이동 시도.
+
+            Returns:
+                str: 이동 실패 시 실패 이유 (ex: 이동할 셀이 없음, 안전하지 않음, 벽 등)
+                None: 이동 성공
+        """
+
+        adjacent_cells = self.kb.get_adjacent_cells(self.location)
+
+        if not adjacent_cells:
+            # backtrak 진행
+            print("진행 가능한 위치가 없습니다. backtrack을 시도합니다.")
+            self.backtrack()
+            return
+
+        target = adjacent_cells[0]
+        delta_row = target.row - self.location.row
+        delta_col = target.col - self.location.col
+
+        # Direction의 delta 속성을 역으로 검색
+        target_direction = next(
+            (
+                direction
+                for direction in Direction
+                if direction.delta == (delta_row, delta_col)
+            ),
+            None,
+        )
+
+        if target_direction is None:
+            return "타겟 셀 방향 계산 실패"
+
+        # 현재 방향과 타겟 방향 일치시킬 때까지 회전 (오른쪽 우선)
+        while self.direction != target_direction:
+            return Action.TURN_RIGHT  # 방향 맞추기
+
+        # 이동 시도
+        return Action.FORWARD

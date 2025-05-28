@@ -26,7 +26,7 @@ class Controller:
     # 게임 구성 요소
     env: Environment = field(default_factory=Environment)
     agent: Agent = field(default_factory=Agent)
-    
+    is_bump: bool = False
     # 게임 상태
     is_game_over: bool = False
     total_steps: int = 0
@@ -49,23 +49,37 @@ class Controller:
         """한 단계 진행
         
         Returns:
-            bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
+             bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
         """
         if self.is_game_over:
             return False
-            
-        action = Action.FORWARD  # 추후 변경
-
-        # 행동 수행, bump 여부 판단
-        success, is_bump = self._process_action(action)
-
+        
         # 감각 수집 (bump가 발생하면 인자로 넘겨줌)
-        percept = self.env.get_percept(self.agent.location, bump=is_bump)
+        percept = self.env.get_percept(self.agent.location, bump=self.is_bump)
 
         # 지식 업데이트
         self.agent.kb.update_with_percept(
             self.agent.location, percept, self.agent.direction
         )
+
+        # KB기반 행동 결정 로직 (wumpus/pit에 빠질 경우, (1,1)에서 부활하여 재시작하는것 X 추후 수정)
+        if percept.glitter:
+            action = Action.GRAB_GOLD
+            print("금 발견! 금을 획득하고 탈출을 준비합니다.")
+            self.agent.backtrack_to_start()
+
+        else:
+            # glitter 없으면 다음 행동 결정
+            action = self.agent.move_to_safest_adjacent_cell()
+            if action is None:
+                # 이동할 위치 없을 때 backtrack
+                print("이동 가능한 위치가 없어 backtrack 시도")
+                return self.agent.backtrack() is None  # backtrack 성공 시 게임 계속 진행
+                
+        # 행동 수행, bump 여부 판단
+        success, self.is_bump = self._process_action(action)
+
+
 
         self._print_game_state()
         self.total_steps += 1
