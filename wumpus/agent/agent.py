@@ -24,7 +24,7 @@ class Agent:
     
     # 현재 상태
     location: Location = field(default_factory=lambda: Location(1, 1))
-    direction: Direction = Direction.EAST
+    direction: Direction = Direction.NORTH
     has_arrow: bool = True
     has_gold: bool = False
     kb: Knowledge_base = field(default_factory=Knowledge_base)
