@@ -63,19 +63,29 @@ class Controller:
         )
 
         # KB기반 행동 결정 로직 (wumpus/pit에 빠질 경우, (1,1)에서 부활하여 재시작하는것 X 추후 수정)
-        if percept.glitter:
-            action = Action.GRAB_GOLD
-            print("금 발견! 금을 획득하고 탈출을 준비합니다.")
-            self.agent.backtrack_to_start()
+        if self.agent.has_gold:
+            # 금을 가지고 있다면, 이동경로 path_stack을 참조하여 (1,1)까지 돌아간다.
+            # self.agent.path_stack으로부터 값 하나 꺼내서 target에 저장.
+            action = self.agent.get_backtrack_action()
+
+            if action == None:
+                action = Action.CLIMB
 
         else:
-            # glitter 없으면 다음 행동 결정
-            action = self.agent.move_to_safest_adjacent_cell()
-            if action is None:
-                # 이동할 위치 없을 때 backtrack
-                print("이동 가능한 위치가 없어 backtrack 시도")
-                return self.agent.backtrack() is None  # backtrack 성공 시 게임 계속 진행
-                
+            # 금을 가지고 있지 않다면, 금을 찾기위해 이동한다.
+            if percept.glitter:
+                action = Action.GRAB_GOLD # 다음행동 금 줍기
+                print("금 발견! 금을 획득하고 탈출을 준비합니다.")
+
+            else:
+                # glitter 없으면 다음 행동 결정
+                action = self.agent.get_exploration_action()
+
+                if action is None:
+                    # 이동할 위치 없을 때 backtrack
+                    print("이동 가능한 위치가 없어 backtrack 시도")
+                    return self.agent.backtrack() is None  # backtrack 성공 시 게임 계속 진행
+        
         # 행동 수행, bump 여부 판단
         success, self.is_bump = self._process_action(action)
 
@@ -127,7 +137,9 @@ class Controller:
         if success:
             if action == Action.FORWARD:
                 # 새 위치로 이동
-                self.agent.location = self.agent.location.move(self.agent.direction)
+                #self.agent.location = self.agent.location.move(self.agent.direction)
+                self.agent._move_forward()
+
             elif action == Action.TURN_LEFT:
                 # 왼쪽으로 회전
                 directions = list(Direction)

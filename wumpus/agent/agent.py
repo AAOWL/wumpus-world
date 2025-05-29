@@ -36,7 +36,8 @@ class Agent:
         """초기 상태 설정"""
         # 삭제예정. percept -> reasoning -> action 중, reasoning(knowledge_base.py의 update_knowledge)에서 처리할 예정
         # self.kb.visited.add(self.location)  
-        self.path_stack.append(self.location) # 처음 위치 스택에 추가
+        # 삭제예정. stack에 현제 위치 저장 -> 이동 이었으므로 첫 위치가 스택에 두번 저장되었음.
+        # self.path_stack.append(self.location) # 처음 위치 스택에 추가
     
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
@@ -76,9 +77,14 @@ class Agent:
         #if not self.kb.grid[new_location.row][new_location.col].safe:
         #   return "안전하지 않은 위치입니다."
 
-        # 현재 위치를 스택에 저장
-        self.path_stack.append(self.location)
-
+        # 금이 없을 때 현재 위치를 스택에 저장(백트래킹시에도 스택에 쌓이는것 방지)
+        if not self.has_gold:
+            self.path_stack.append(self.location)
+        
+        # 금이 있을 때에는 이동한 위치 스택에서 삭제.
+        else:
+            self.path_stack.pop()
+            
         self.location = new_location
         self.kb.grid[new_location.row][new_location.col].visited = True
         return None
@@ -158,24 +164,62 @@ class Agent:
 
             print(f"시작 위치로 돌아가는 중: {self.location} → {loc}")
             self.location = loc  # 위치 이동(direction 상관X)
-
-    def move_to_safest_adjacent_cell(self) -> Optional[Action]:
+    # path_stack을 따라 시작 지점으로 복귀하기 위한 Action을 반환
+    def get_backtrack_action(self) -> Optional[Action]:
         """
-            get_adjacent_cells() 결과를 참고하여,
-            가장 위험도가 낮은 셀로 방향 회전 후 이동 시도.
+        path_stack에서 다음 위치를 꺼내 현재 에이전트의 위치와 방향을 기반으로
+        백트래킹을 위한 다음 액션(TURN_RIGHT 또는 FORWARD)을 결정.
 
-            Returns:
-                str: 이동 실패 시 실패 이유 (ex: 이동할 셀이 없음, 안전하지 않음, 벽 등)
-                None: 이동 성공
+        Returns:
+            Optional[Action]: 수행할 액션 (TURN_RIGHT, FORWARD) 또는
+                             더 이상 돌아갈 경로가 없다면 None.
+        """
+        if not self.path_stack:
+            # path_stack이 비어있으면 더 이상 돌아갈 경로가 없음
+            print("DEBUG: path_stack이 비어있습니다. 더 이상 백트래킹할 경로가 없습니다.")
+            return None
+
+        # path_stack에서 가장 최근 방문했던 위치를 꺼냅니다. (이전 위치로 돌아감)
+        target_location = self.path_stack[-1]
+        print(f"DEBUG: {target_location}으로 돌아갑니다.")
+
+        # 현재 위치에서 목표 위치(이전 위치)로 가기 위한 상대적인 이동량 계산
+        # 예: 현재 (1,1), target (0,1) -> delta_row = -1, delta_col = 0 (NORTH)
+        delta_row = target_location.row - self.location.row
+        delta_col = target_location.col - self.location.col
+
+        # 이 delta 값과 일치하는 방향(Direction)을 찾습니다.
+        # 즉, 에이전트가 target_location을 향하기 위해 바라봐야 할 방향을 찾습니다.
+        target_direction = next(
+            (
+                direction
+                for direction in Direction
+                if direction.delta == (delta_row, delta_col)
+            ),
+            None, # 일치하는 방향이 없을 경우 None 반환
+        )
+
+        if self.direction != target_direction:
+            return Action.TURN_RIGHT  # 방향 맞추기
+                
+        else:
+            return Action.FORWARD # 이동동
+    # KB를 참조하여, 금을 찾기 위해 방문할 위치를 결정. 해당 위치로 이동하기 위한 Action 반환
+    def get_exploration_action(self) -> Optional[Action]:
+        """
+        탐색 모드에서 금을 찾기 위해 에이전트가 취할 다음 액션을 결정.
+        안전한 인접 셀로 이동하거나, 필요시 회전하는 등의 탐색 행동을 반환.
+
+        Returns:
+            Optional[Action]: 수행할 탐색 액션 (FORWARD, TURN_RIGHT) 또는
+                             더 이상 탐색할 곳이 없는 경우 None.
         """
 
         adjacent_cells = self.kb.get_adjacent_cells(self.location)
 
         if not adjacent_cells: 
-            # backtrak 진행
-            print("진행 가능한 위치가 없습니다. backtrack을 시도합니다.")
-            self.backtrack()
-            return
+            # 이동 가능한 방향이 X backtrak 진행
+            return None
 
         target = adjacent_cells[0]
         delta_row = target.row - self.location.row
@@ -191,12 +235,8 @@ class Agent:
             None,
         )
 
-        if target_direction is None:
-            print("타겟 셀 방향 계산 실패")
-            return
-
         # 현재 방향과 타겟 방향 일치시킬 때까지 회전 (오른쪽 우선)
-        while self.direction != target_direction:
+        if self.direction != target_direction:
             return Action.TURN_RIGHT  # 방향 맞추기
 
         # 이동 시도
