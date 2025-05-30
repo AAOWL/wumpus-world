@@ -89,9 +89,8 @@ class Controller:
         # 행동 수행, bump 여부 판단
         success, self.is_bump = self._process_action(action)
 
-
-
         self._print_game_state()
+        self.agent.kb._print_knowledge_base()
         self.total_steps += 1
         
         return not self.is_game_over
