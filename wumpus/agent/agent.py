@@ -1,11 +1,12 @@
 """Wumpus World의 에이전트를 구현한 모듈"""
 
 from dataclasses import dataclass, field
-from typing import Optional, Set, Dict, List
+from typing import Optional, List
 
 from wumpus.models.action import Action
 from wumpus.models.direction import Direction
 from wumpus.models.location import Location
+from wumpus.models.percept import Percept
 from wumpus.agent.knowledge_base import Knowledge_base
 
 
@@ -14,26 +15,36 @@ class Agent:
     """Wumpus World의 에이전트
 
     에이전트는 다음과 같은 상태를 유지합니다:
-    - 현재 위치와 방향
-    - 방문한 위치들의 집합
-    - 안전하지 않은 위치들의 집합
-    - Wumpus가 있을 수 있는 위치들의 집합
-    - Pit이 있을 수 있는 위치들의 집합
-    - 보유한 화살의 수
-    - 획득한 금의 유무
+        - agent의 생존 여부 (is_alive)
+        - 현재 위치와 방향
+        - 화살의 소유 여부
+        - 획득한 금의 유무
+        - Knowledge_base
+        - 위치 히스토리 (path_stack)
     """
 
     # 현재 상태
     is_alive: bool = True
     location: Location = field(default_factory=lambda: Location(1, 1))
     direction: Direction = Direction.NORTH
+
     has_arrow: bool = True
     has_gold: bool = False
     kb: Knowledge_base = field(default_factory=Knowledge_base)
 
-    # 지나온 길 저장하는 스택
     path_stack: List[Location] = field(default_factory=list)
 
+    # ============================= KB 갱신 =============================
+    def update_state_with_percept(self, percept: Percept) -> None:
+        """
+        현재 위치에서 받은 Percept를 바탕으로
+            - Knowledge_base 업데이트
+        """
+
+        # kb에 percept 반영
+        self.kb.update_with_percept(self.location, percept, self.direction)
+
+    # ============================= agent의 행동(Action) =============================
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
 
@@ -68,12 +79,12 @@ class Agent:
         if not (1 <= new_location.row <= 4 and 1 <= new_location.col <= 4):
             return "벽에 부딪혔습니다."
 
-        # 금이 없을 때 현재 위치를 스택에 저장
+        # 금이 없을 때, 현재 위치를 스택에 저장
         if not self.has_gold:
             self.path_stack.append(self.location)
 
         self.location = new_location
-        # self.kb.grid[new_location.row][new_location.col].visited = True
+
         return None
 
     def _turn_left(self) -> None:
@@ -129,30 +140,39 @@ class Agent:
 
         return None
 
-    # 더이상 진행할 수 없다면 백트래킹
-    def backtrack(self) -> Optional[str]:
-        if len(self.path_stack) <= 1:
-            return "더 이상 되돌아갈 위치가 없습니다."
-
-        self.location = self.path_stack.pop()
-        return f"{self.location}로 되돌아갔습니다."
-
-    # path_stack을 따라 시작 지점으로 복귀
-    def backtrack_to_start(self):
+    # ============================= 다음 행동 결정 =============================
+    def decide_next_action(self) -> Optional[Action]:
         """
-        스택을 역추적하여 시작 위치(1,1)로 되돌아감.
-        Direction은 신경쓰지 않고, agent의 위치만 순서대로 이동.
+        update_state_with_percept 이후에 쓰여야함.
+        흐름: update_state_with_percept -> decide_next_action -> perfrom_action
+
+        현재 상태와 Percept를 바탕으로, 다음에 취할 Action을 결정.
+          1) 금을 가지고 있다면 → 되돌아가기(백트래킹) 또는 CLIMB
+          2) 현재 위치에 금이 반짝거리면 → GRAB_GOLD
+          3) 백트래킹 모드인지 아닌지 판정하여 → get_backtrack_action()
+          4) 그 외 탐색 모드 → get_exploration_action()
         """
-        path_back = self.path_stack[::-1]  # 스택을 역순으로
 
-        for loc in path_back:
-            if loc == self.location:
-                continue  # 현재 위치는 제외
+        # 1) 금을 이미 가지고 있다면
+        if self.has_gold:
+            # 시작 위치(1,1)까지 되돌아오면 CLIMB
+            if self.location == Location(1, 1):
+                return Action.CLIMB
+            # 아니라면 백트래킹 행동 리턴
+            return self.get_backtrack_action()
 
-            print(f"시작 위치로 돌아가는 중: {self.location} → {loc}")
-            self.location = loc  # 위치 이동(direction 상관X)
+        # 2) 현재 칸에 GOLD(Glitter) 가 있으면 바로 줍기
+        if self.kb.grid[self.location.row][self.location.col].has_gold:
+            return Action.GRAB_GOLD
 
-    # path_stack을 따라 시작 지점으로 복귀하기 위한 Action을 반환
+        # 3) 아직 탐색 중일 때: 안전한 인접 칸 선택
+        exploration_action = self.get_exploration_action()
+        if exploration_action is not None:
+            return exploration_action()
+
+        # 4) 그 외 탐색 모드: 백트래킹
+        return self.get_backtrack_action()
+
     def get_backtrack_action(self) -> Optional[Action]:
         """
         path_stack에서 다음 위치를 꺼내 현재 에이전트의 위치와 방향을 기반으로
@@ -173,7 +193,7 @@ class Agent:
         target_location = self.path_stack[-1]
         print(f"DEBUG: {target_location}으로 돌아갑니다.")
 
-        # 현재 위치에서 목표 위치(이전 위치)로 가기 위한 상대적인 이동량 계산
+        # 현재 위치에서 목표 위치(이전 위치)로 가기 위한 방향을 계산
         # 예: 현재 (1,1), target (0,1) -> delta_row = -1, delta_col = 0 (NORTH)
         delta_row = target_location.row - self.location.row
         delta_col = target_location.col - self.location.col
@@ -189,31 +209,36 @@ class Agent:
             None,  # 일치하는 방향이 없을 경우 None 반환
         )
 
+        # stack에 잘못된 좌표가 들어온 경우
+        if target_direction is None:
+            print("target_direction이 None입니다.: get_backtrack_action")
+            return None
+
         if self.direction != target_direction:
             return Action.TURN_RIGHT  # 방향 맞추기
 
         else:
             self.path_stack.pop()
-            return Action.FORWARD  # 이동동
+            return Action.FORWARD  # 이동
 
-    # KB를 참조하여, 금을 찾기 위해 방문할 위치를 결정. 해당 위치로 이동하기 위한 Action 반환
     def get_exploration_action(self) -> Optional[Action]:
         """
-        탐색 모드에서 금을 찾기 위해 에이전트가 취할 다음 액션을 결정.
-        안전한 인접 셀로 이동하거나, 필요시 회전하는 등의 탐색 행동을 반환.
+        금을 찾기 위해 에이전트가 취할 다음 액션을 결정.
+        가장 위험도가 낮은 인접 셀을 선택.
+        이동하기 위해 회전/이동 행동을 반환.
 
         Returns:
             Optional[Action]: 수행할 탐색 액션 (FORWARD, TURN_RIGHT) 또는
                              더 이상 탐색할 곳이 없는 경우 None.
         """
 
-        adjacent_cells = self.kb.get_adjacent_cells(self.location)
+        valid_adjacent = self.kb.get_adjacent_cells(self.location)
 
-        if not adjacent_cells:
+        if not valid_adjacent:
             # 이동 가능한 방향이 X backtrak 진행
             return None
 
-        target = adjacent_cells[0]
+        target = valid_adjacent[0]
         delta_row = target.row - self.location.row
         delta_col = target.col - self.location.col
 
@@ -227,6 +252,10 @@ class Agent:
             None,
         )
 
+        if target_direction is None:
+            print("target_direction이 None입니다.: get_exploration_action")
+            return None
+        
         # 현재 방향과 타겟 방향 일치시킬 때까지 회전 (오른쪽 우선)
         if self.direction != target_direction:
             return Action.TURN_RIGHT  # 방향 맞추기
@@ -234,6 +263,7 @@ class Agent:
         # 이동 시도
         return Action.FORWARD
 
+    # ============================= Debug용 =============================
     def print_path_stack_status(self):
         """
         현재 path_stack의 상태를 디버깅 목적으로 출력.
