@@ -84,7 +84,10 @@ def main():
         controller.start_game()
 
         # 게임 루프
-        while not controller.is_game_over:
+        while not controller.total_steps <= 200:
+            # DEBUG용 path_stack 출력
+            controller.agent.print_path_stack_status()
+
             # 사용자 입력 받기
             command = input("\n행동을 선택하세요 (h: 도움말): ")
 

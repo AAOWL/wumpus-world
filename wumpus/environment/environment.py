@@ -26,7 +26,6 @@ class Environment:
     max_pits: int = 2    # 최대 Pit 수
     
     # 게임 상태
-    is_game_over: bool = False
     is_wumpus_killed: bool = False
     score: int = 0
     
@@ -108,7 +107,7 @@ class Environment:
     def perform_action(self, action: Action, agent_location: Location, 
                       agent_direction: Direction) -> Tuple[bool, Optional[str], int]:
         """에이전트의 행동을 처리
-        
+           오직 행동만 처리        
         Args:
             action: 수행할 행동
             agent_location: 현재 에이전트의 위치
@@ -140,12 +139,10 @@ class Environment:
             
             # 위험 요소 체크
             if self.grid[new_row][new_col].has_wumpus:
-                self.is_game_over = True
                 score_delta -= 1000  # 사망 페널티
                 return True, "Wumpus에게 잡혔습니다!", score_delta
                 
             if self.grid[new_row][new_col].has_pit:
-                self.is_game_over = True
                 score_delta -= 1000  # 사망 페널티
                 return True, "구덩이에 빠졌습니다!", score_delta
                 
@@ -175,7 +172,6 @@ class Environment:
             
         elif action == Action.CLIMB:
             if (old_row, old_col) == (0, 0):  # (1,1) 위치
-                self.is_game_over = True
                 return True, "탈출에 성공했습니다!", score_delta
             return False, "시작 지점에서만 탈출할 수 있습니다.", score_delta
             
@@ -185,3 +181,31 @@ class Environment:
         """주어진 위치가 유효한지 확인"""
         row, col = location.row - 1, location.col - 1
         return 0 <= row < self.size and 0 <= col < self.size
+
+    def check_for_death(self, agent_location: 'Location') -> bool:
+        """
+        에이전트가 현재 위치에서 죽었는지 확인. (Wumpus나 Pit 존재 여부만 판단)
+        """
+        current_row, current_col = agent_location.row - 1, agent_location.col - 1
+        
+        if self.grid[current_row][current_col].has_wumpus:
+            print(f"ENV: 왐푸스에게 먹혔습니다! 위치: {agent_location}")
+            return True
+        if self.grid[current_row][current_col].has_pit:
+            print(f"ENV: 구덩이에 빠졌습니다! 위치: {agent_location}")
+            return True
+        return False
+    
+    def update_agent_position_in_grid(self, old_location: Location, new_location: Location):
+        """
+        Environment의 grid에서 에이전트의 위치를 업데이트합니다.
+        has_agent의 위치 old_location -> new_location
+        """
+        # 이전 위치가 유효하다면 has_agent를 False로
+        if self.is_valid_location(old_location):
+            self.grid[old_location.row - 1][old_location.col - 1].has_agent = False
+        
+        # 새로운 위치가 유효하다면 has_agent를 True로
+        if self.is_valid_location(new_location):
+            self.grid[new_location.row - 1][new_location.col - 1].has_agent = True
+        # 유효하지 않은 (0,0)과 같은 임시 위치는 무시

@@ -51,16 +51,44 @@ class Controller:
         Returns:
              bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
         """
+        in_tracking = False
+
         if self.is_game_over:
             return False
         
+        # Agent가 이전턴에 죽었다면 부활 로직
+        if self.env.check_for_death(self.agent.location):
+            dead_at_location = self.agent.location
+            self.messages.append(f"에이전트가 {dead_at_location}에서 사망했습니다!")
+
+            # 1. 죽은 장소에 unsafe 표기. env의 has_agent 지우기
+            self.agent.kb.mark_unsafe(dead_at_location)
+
+            # 2. 시작 장소에서 부활/죽은 지점으로 되돌아가기.
+            self.agent.location = self.agent.path_stack.pop()
+            self.env.update_agent_position_in_grid(dead_at_location, self.agent.location)
+            print(f"DEBUG: agent는 이전칸인 {self.agent.location} 으로 돌아갑니다.")
+
+            # 3. 죽음으로 인해 게임이 종료되지 않음.
+            self.agent.is_alive = True
+
+            return True
+
         # 감각 수집 (bump가 발생하면 인자로 넘겨줌)
         percept = self.env.get_percept(self.agent.location, bump=self.is_bump)
 
-        # 지식 업데이트
-        self.agent.kb.update_with_percept(
-            self.agent.location, percept, self.agent.direction
-        )
+        # KB에 bump 감지시 Wall 표시
+        if percept.bump:
+            self.agent.kb.mark_wall(self.agent.location, percept, self.agent.direction)
+
+        # 처음 방문 한 곳이라면 possible_wumpus/possible_pit.safe 지식 업데이트
+        if not self.agent.kb.grid[self.agent.location.row][self.agent.location.col].visited:
+            self.agent.kb.update_with_percept(
+                self.agent.location, percept, self.agent.direction
+            )
+            
+        # KB 출력력
+        self.agent.kb._print_knowledge_base()
 
         # KB기반 행동 결정 로직 (wumpus/pit에 빠질 경우, (1,1)에서 부활하여 재시작하는것 X 추후 수정)
         if self.agent.has_gold:
@@ -83,15 +111,40 @@ class Controller:
 
                 if action is None:
                     # 이동할 위치 없을 때 backtrack
+                    """
+                    |[ ]|[ ]|[ ]|[ ]|
+                    +---+---+---+---+
+                    |[ ]|[G]|[ ]|[ ]|
+                    +---+---+---+---+
+                    |[ ]|[W]|[W]|[A]|
+                    +---+---+---+---+
+                    |[ ]|[ ]|[P]|[ ]|
+                    
+                    |[ ]|[ ]|[ ]|[ ]|
+                    +---+---+---+---+
+                    |[ ]|[G]|[ ]|[ ]|
+                    +---+---+---+---+
+                    |[ ]|[W]|[W]|[ ]|
+                    +---+---+---+---+
+                    |[ ]|[ ]|[P]|[A]|
+                    """
                     print("이동 가능한 위치가 없어 backtrack 시도")
-                    return self.agent.backtrack() is None  # backtrack 성공 시 게임 계속 진행
+                    action = self.agent.get_backtrack_action()  # backtrack 성공 시 게임 계속 진행
+                    in_tracking = True
         
         # 행동 수행, bump 여부 판단
-        success, self.is_bump = self._process_action(action)
+        success, self.is_bump = self._process_action(action) # type: ignore
+        
+        if in_tracking and action == Action.FORWARD:
+            self.agent.path_stack.pop()
 
         self._print_game_state()
-        self.agent.kb._print_knowledge_base()
         self.total_steps += 1
+
+        # agent가 움직인 후에 죽음을 체크
+        if self.env.check_for_death(self.agent.location):
+            self.agent.is_alive = False #agent 상태 사망으로 변경
+
         
         return not self.is_game_over
     
@@ -135,20 +188,15 @@ class Controller:
         # 행동이 성공한 경우, 에이전트 상태 업데이트
         if success:
             if action == Action.FORWARD:
-                # 새 위치로 이동
-                #self.agent.location = self.agent.location.move(self.agent.direction)
+                # 새 위치로 이동   
                 self.agent._move_forward()
 
             elif action == Action.TURN_LEFT:
                 # 왼쪽으로 회전
-                directions = list(Direction)
-                current_idx = directions.index(self.agent.direction)
-                self.agent.direction = directions[(current_idx - 1) % 4]
+                self.agent._turn_left()
             elif action == Action.TURN_RIGHT:
                 # 오른쪽으로 회전
-                directions = list(Direction)
-                current_idx = directions.index(self.agent.direction)
-                self.agent.direction = directions[(current_idx + 1) % 4]
+                self.agent._turn_right()
             elif action == Action.SHOOT_ARROW:
                 # 화살 사용
                 self.agent.has_arrow = False
@@ -158,10 +206,6 @@ class Controller:
             elif action == Action.CLIMB and self.agent.location == Location(1, 1):
                 # 탈출 성공
                 self.is_game_over = True
-                
-        # 게임 종료 조건 체크
-        if self.env.is_game_over:
-            self.is_game_over = True
 
         return success, is_bump
     

@@ -23,6 +23,7 @@ class Agent:
     """
     
     # 현재 상태
+    is_alive: bool = True
     location: Location = field(default_factory=lambda: Location(1, 1))
     direction: Direction = Direction.NORTH
     has_arrow: bool = True
@@ -31,13 +32,6 @@ class Agent:
     
     # 지나온 길 저장하는 스택
     path_stack: List[Location] = field(default_factory=list)
-
-    def __post_init__(self):
-        """초기 상태 설정"""
-        # 삭제예정. percept -> reasoning -> action 중, reasoning(knowledge_base.py의 update_knowledge)에서 처리할 예정
-        # self.kb.visited.add(self.location)  
-        # 삭제예정. stack에 현제 위치 저장 -> 이동 이었으므로 첫 위치가 스택에 두번 저장되었음.
-        # self.path_stack.append(self.location) # 처음 위치 스택에 추가
     
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
@@ -72,21 +66,14 @@ class Agent:
         # 맵 범위(4x4) 체크
         if not (1 <= new_location.row <= 4 and 1 <= new_location.col <= 4):
             return "벽에 부딪혔습니다."
-            
-        # 안전하지 않은 위치 체크
-        #if not self.kb.grid[new_location.row][new_location.col].safe:
-        #   return "안전하지 않은 위치입니다."
 
-        # 금이 없을 때 현재 위치를 스택에 저장(백트래킹시에도 스택에 쌓이는것 방지)
+        # 금이 없을 때 현재 위치를 스택에 저장
         if not self.has_gold:
             self.path_stack.append(self.location)
         
-        # 금이 있을 때에는 이동한 위치 스택에서 삭제.
-        else:
-            self.path_stack.pop()
             
         self.location = new_location
-        self.kb.grid[new_location.row][new_location.col].visited = True
+        # self.kb.grid[new_location.row][new_location.col].visited = True
         return None
     
     def _turn_left(self) -> None:
@@ -203,9 +190,13 @@ class Agent:
             return Action.TURN_RIGHT  # 방향 맞추기
                 
         else:
+            self.path_stack.pop()
             return Action.FORWARD # 이동동
+            
     # KB를 참조하여, 금을 찾기 위해 방문할 위치를 결정. 해당 위치로 이동하기 위한 Action 반환
     def get_exploration_action(self) -> Optional[Action]:
+
+        
         """
         탐색 모드에서 금을 찾기 위해 에이전트가 취할 다음 액션을 결정.
         안전한 인접 셀로 이동하거나, 필요시 회전하는 등의 탐색 행동을 반환.
@@ -241,3 +232,16 @@ class Agent:
 
         # 이동 시도
         return Action.FORWARD
+    
+    def print_path_stack_status(self):
+        """
+        현재 path_stack의 상태를 디버깅 목적으로 출력.
+        """
+        if not self.path_stack:
+            print("DEBUG: path_stack은 현재 비어 있습니다.")
+        else:
+            # path_stack의 내용을 (row, col) 형태로 보기 쉽게 출력
+            stack_representation = ", ".join([
+                f"({loc.row},{loc.col})" for loc in self.path_stack
+            ])
+            print(f"DEBUG: path_stack 현재 상태: [{stack_representation}] (길이: {len(self.path_stack)})")

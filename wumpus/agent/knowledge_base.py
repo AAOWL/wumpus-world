@@ -23,18 +23,18 @@ class Knowledge_Cell:
         # 0순위: Wall
         if self.wall:
             return "W"
-
-        # 1순위: Visited
+        
+        # 1순위: Unsafe
+        if self.unsafe:
+            return "US"
+        
+        # 2순위: Visited
         if self.visited:
             return "V"
         
-        # 2순위: Safe
+        # 3순위: Safe
         if self.safe:
             return "S"
-        
-        # 3순위: Unsafe
-        if self.unsafe:
-            return "US"
         
         contents = []
         # 4순위: Possible Wumpus + Possible Pit
@@ -65,17 +65,11 @@ class Knowledge_base:
     def update_with_percept(
         self, location: Location, percept: Percept, direction: Direction
     ) -> None:
-        """현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"""
+        """
+        현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"
+        percept기반 인접셀의 possible_wumpus/possible_pit/safe정보를 갱신
+        """
         row, col = location.row, location.col
-
-        # bump가 감지되면 agent 앞에 있는 칸을 벽으로 표시
-        if percept.bump:
-            dr, dc = direction.delta
-            wall_row = row + dr
-            wall_col = col + dc
-            if 0 <= wall_row < self.size and 0 <= wall_col < self.size:
-                self.grid[wall_row][wall_col].wall = True
-            return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
 
         # 현재 위치는 방문했음을 표시
         self.grid[row][col].visited = True
@@ -119,8 +113,8 @@ class Knowledge_base:
                     self.grid[adj_r][adj_c].possible_wumpus = 0
 
                 if not percept.breeze and not percept.stench:
-                    self.grid[adj_r][adj_c].possible_wumpus += 1
-                    self.grid[adj_r][adj_c].possible_pit += 1
+                    self.grid[adj_r][adj_c].possible_wumpus = 0
+                    self.grid[adj_r][adj_c].possible_pit = 0
                     self.grid[adj_r][adj_c].safe = True
 
     def get_adjacent_cells(self, location: Location) -> List["Location"]:
@@ -174,3 +168,22 @@ class Knowledge_base:
                 print(f"{cell_str:^3}", end="|")  # :^3는 3칸 중앙 정렬
             print()
             print_separator()
+    
+    def mark_unsafe(self, location: Location) -> None:
+
+        row, col = location.row, location.col
+        self.grid[row][col].unsafe = True
+
+        return
+    
+    def mark_wall(self,location: Location, percept: Percept, direction: Direction) -> None:
+        row, col = location.row, location.col
+
+        # bump가 감지되면 agent 앞에 있는 칸을 벽으로 표시
+        if percept.bump:
+            dr, dc = direction.delta
+            wall_row = row + dr
+            wall_col = col + dc
+            if 0 <= wall_row < self.size and 0 <= wall_col < self.size:
+                self.grid[wall_row][wall_col].wall = True
+            return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
