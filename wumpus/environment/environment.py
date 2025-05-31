@@ -203,8 +203,9 @@ class Environment:
         self, old_location: Location, new_location: Location
     ):
         """
-        Environment의 grid에서 에이전트의 위치를 업데이트합니다.
-        has_agent의 위치 old_location -> new_location
+        Grid 상에서 에이전트 위치 표시를 갱신한다. old_location -> new_location
+        - old_location: 이전 위치 (None일 경우 무시)
+        - new_location: 새로운 위치
         """
         # 이전 위치가 유효하다면 has_agent를 False로
         if self.is_valid_location(old_location):
@@ -213,4 +214,3 @@ class Environment:
         # 새로운 위치가 유효하다면 has_agent를 True로
         if self.is_valid_location(new_location):
             self.grid[new_location.row - 1][new_location.col - 1].has_agent = True
-        # 유효하지 않은 (0,0)과 같은 임시 위치는 무시
