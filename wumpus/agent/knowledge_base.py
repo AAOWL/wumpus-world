@@ -70,55 +70,20 @@ class Knowledge_base:
     ) -> None:
         """
         현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"
-        percept기반 인접셀의 possible_wumpus/possible_pit/safe정보를 갱신
+        인접 셀 중 유효 셀들 가져와서
+            - Breeze/Stench 감지시 possible 가중치 증가
+            - 둘 다 없으면 safe 마킹
         """
         row, col = location.row, location.col
 
-        # 현재 위치는 방문했음을 표시
-        self.grid[row][col].visited = True
-        self.grid[row][col].safe = True  # 현재 위치는 안전하다고 가정 (죽지 않았으므로)
-        self.grid[row][col].possible_wumpus = 0  # 현재 위치엔 왐퍼스 없음
-        self.grid[row][col].possible_pit = 0  # 현재 위치엔 구덩이 없음
+        # 1) 현재 위치 마킹
+        self._mark_current_as_visited_and_safe(location)
 
-        # 인접한 위치들 계산
-        adjacent = location.get_adjacent()  # Location 클래스에 get_adjacent 메서드 추가
+        # 2) 유효한 인접 셀 필터링 (pit 또는 wumpus가 존재 할 수 있는 위치
+        valid_adjacent = self._get_valid_adjacent_cells(location)
 
-        # 유효한 위치 추출 (pit 또는 wumpus가 존재 할 수 있는 위치
-        # 즉 visited되지 않은 위치 and wall이 아닌 위치 and 안전하지 않은 위치
-        adjacent_locations = [
-            loc
-            for loc in adjacent
-            if not self.grid[loc.row][loc.col].visited
-            and not self.grid[loc.row][loc.col].wall
-            and not self.grid[loc.row][loc.col].safe
-        ]
-
-        # Breeze, Stench 감지 시 인접 칸에 가능성 표시
-        for adj_loc in adjacent_locations:
-            adj_r, adj_c = adj_loc.row, adj_loc.col
-
-            # 방문하지 않은 칸에 대해서만 추론
-            if not self.grid[adj_r][adj_c].visited:
-                # Breeze가 존재
-                if percept.breeze:
-                    self.grid[adj_r][adj_c].possible_pit += 1
-
-                # Breeze가 없으면 인접 칸에 Pit이 없음
-                if not percept.breeze:
-                    self.grid[adj_r][adj_c].possible_pit = 0
-
-                # Stench가 존재
-                if percept.stench:
-                    self.grid[adj_r][adj_c].possible_wumpus += 1
-
-                # Stench가 없으면 인접 칸에 Wumpus가 없음
-                if not percept.stench:
-                    self.grid[adj_r][adj_c].possible_wumpus = 0
-
-                if not percept.breeze and not percept.stench:
-                    self.grid[adj_r][adj_c].possible_wumpus = 0
-                    self.grid[adj_r][adj_c].possible_pit = 0
-                    self.grid[adj_r][adj_c].safe = True
+        # 3) percept에 따른 인접 셀 업데이트
+        self._apply_breeze_and_stench(valid_adjacent, percept)
 
     def get_adjacent_cells(self, location: Location) -> List["Location"]:
         """
@@ -142,6 +107,67 @@ class Knowledge_base:
         )
 
         return sorted_loc
+
+    def _mark_current_as_visited_and_safe(self, location: Location) -> None:
+        """
+            현재 위치 방문 + 안전 + possible 0으로 초기화
+        """
+
+        row, col = location.row, location.col
+        cell = self.grid[row][col]
+        cell.visited = True
+        cell.safe = True
+        cell.possible_pit = 0
+        cell.possible_wumpus = 0
+
+    def _get_valid_adjacent_cells(self, location: Location) -> list[Location]:
+        """
+        location 기준 인접 셀 중에서
+        - visited X
+        - wall X
+        - safe X
+        인 모든 셀 필터링하여 반환
+        """
+
+        adjacent = location.get_adjacent() #인접 셀 리스트 반환
+
+        valid = []
+        for loc in adjacent:
+            cell = self.grid[loc.row][loc.col]
+            if not cell.visited and not cell.wall and not cell.safe:
+                valid.append(loc)
+
+        return valid
+
+    def _apply_breeze_and_stench(self, adjacent_cells: list[Location], percept: Percept) -> None:
+        """
+        인접 셀 중 valid한 셀들에 대해서
+        - breeze가 있으면 possible_pit += 1, 없으면 possible_pit = 0
+        - stench가 있으면 possible_wumpus += 1, 없으면 possible_wumpus = 0
+        """
+        for loc in adjacent_cells:
+            row, col = loc.row, loc.col
+            cell = self.grid[row][col]
+
+            # 이미 방문된 셀은 불필요 (visited 체크)
+            if cell.visited:
+                continue
+
+            # 1) pit 가능성 업데이트
+            if percept.breeze:
+                cell.possible_pit += 1
+            else:
+                cell.possible_pit = 0
+
+            # 2) wumpus 가능성 업데이트
+            if percept.stench:
+                cell.possible_wumpus += 1
+            else:
+                cell.possible_wumpus = 0
+
+            # 3) 양쪽 모두 없으면(= 깨끗한 셀이면) 안전 마킹
+            if not percept.breeze and not percept.stench:
+                cell.safe = True
 
     def _print_knowledge_base(self) -> None:
         """현재 환경 상태를 격자 형태로 출력
