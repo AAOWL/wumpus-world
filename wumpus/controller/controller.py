@@ -145,8 +145,11 @@ class Controller:
         if self.env.check_for_death(self.agent.location):
             self.agent.is_alive = False #agent 상태 사망으로 변경
 
-        
-        return not self.is_game_over
+        # steps수 200 이상되면 종료. 금을 지닌채로 200번 넘으면 종료 -> 금을 가지고 끝났으므로 성공! 이 뜸. 수정필요.
+        if self.total_steps >= 200:
+            return self.is_game_over
+        else:
+            return not self.is_game_over
     
     def run_game(self) -> Tuple[bool, int]:
         """게임을 끝까지 실행
