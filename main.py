@@ -84,7 +84,7 @@ def main():
         controller.start_game()
 
         # 게임 루프
-        while not controller.total_steps <= 200:
+        while controller.total_steps <= 200:
             # DEBUG용 path_stack 출력
             controller.agent.print_path_stack_status()
 
