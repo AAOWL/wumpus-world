@@ -17,4 +17,4 @@ class Percept:
     breeze: bool = False
     glitter: bool = False
     scream: bool = False
-    bump : bool = False
+    bump: bool = False

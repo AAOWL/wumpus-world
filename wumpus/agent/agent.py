@@ -8,10 +8,11 @@ from wumpus.models.direction import Direction
 from wumpus.models.location import Location
 from wumpus.agent.knowledge_base import Knowledge_base
 
+
 @dataclass
 class Agent:
     """Wumpus World의 에이전트
-    
+
     에이전트는 다음과 같은 상태를 유지합니다:
     - 현재 위치와 방향
     - 방문한 위치들의 집합
@@ -21,7 +22,7 @@ class Agent:
     - 보유한 화살의 수
     - 획득한 금의 유무
     """
-    
+
     # 현재 상태
     is_alive: bool = True
     location: Location = field(default_factory=lambda: Location(1, 1))
@@ -29,16 +30,16 @@ class Agent:
     has_arrow: bool = True
     has_gold: bool = False
     kb: Knowledge_base = field(default_factory=Knowledge_base)
-    
+
     # 지나온 길 저장하는 스택
     path_stack: List[Location] = field(default_factory=list)
-    
+
     def perform_action(self, action: Action) -> Optional[str]:
         """주어진 행동을 수행
-        
+
         Args:
             action: 수행할 행동
-            
+
         Returns:
             str: 행동 수행 결과 메시지 (실패 시 실패 이유)
             None: 행동 수행 성공
@@ -49,20 +50,20 @@ class Agent:
             Action.TURN_RIGHT: self._turn_right,
             Action.SHOOT_ARROW: self._shoot_arrow,
             Action.GRAB_GOLD: self._grab_gold,
-            Action.CLIMB: self._climb
+            Action.CLIMB: self._climb,
         }
-        
+
         return action_handlers[action]()
-    
+
     def _move_forward(self) -> Optional[str]:
         """현재 방향으로 한 칸 전진
-        
+
         Returns:
             str: 이동 실패 시 실패 이유
             None: 이동 성공
         """
         new_location = self.location.move(self.direction)
-        
+
         # 맵 범위(4x4) 체크
         if not (1 <= new_location.row <= 4 and 1 <= new_location.col <= 4):
             return "벽에 부딪혔습니다."
@@ -70,65 +71,64 @@ class Agent:
         # 금이 없을 때 현재 위치를 스택에 저장
         if not self.has_gold:
             self.path_stack.append(self.location)
-        
-            
+
         self.location = new_location
         # self.kb.grid[new_location.row][new_location.col].visited = True
         return None
-    
+
     def _turn_left(self) -> None:
         """왼쪽으로 90도 회전"""
         directions = list(Direction)
         current_idx = directions.index(self.direction)
         self.direction = directions[(current_idx - 1) % 4]
-    
+
     def _turn_right(self) -> None:
         """오른쪽으로 90도 회전"""
         directions = list(Direction)
         current_idx = directions.index(self.direction)
         self.direction = directions[(current_idx + 1) % 4]
-    
+
     def _shoot_arrow(self) -> Optional[str]:
         """현재 방향으로 화살 발사
-        
+
         Returns:
             str: 발사 실패 시 실패 이유
             None: 발사 성공
         """
         if not self.has_arrow:
             return "화살이 없습니다."
-            
+
         self.has_arrow = False
         return None
-    
+
     def _grab_gold(self) -> Optional[str]:
         """현재 위치에서 금 획득 시도
-        
+
         Returns:
             str: 획득 실패 시 실패 이유
             None: 획득 성공
         """
         if self.has_gold:
             return "이미 금을 보유하고 있습니다."
-            
+
         self.has_gold = True
         return None
-    
+
     def _climb(self) -> Optional[str]:
         """동굴 탈출 시도
-        
+
         Returns:
             str: 탈출 실패 시 실패 이유
             None: 탈출 성공
         """
         if self.location != Location(1, 1):
             return "시작 지점(1,1)에서만 탈출할 수 있습니다."
-            
+
         if not self.has_gold:
             return "금을 획득해야 탈출할 수 있습니다."
-            
+
         return None
-    
+
     # 더이상 진행할 수 없다면 백트래킹
     def backtrack(self) -> Optional[str]:
         if len(self.path_stack) <= 1:
@@ -136,7 +136,7 @@ class Agent:
 
         self.location = self.path_stack.pop()
         return f"{self.location}로 되돌아갔습니다."
-    
+
     # path_stack을 따라 시작 지점으로 복귀
     def backtrack_to_start(self):
         """
@@ -151,6 +151,7 @@ class Agent:
 
             print(f"시작 위치로 돌아가는 중: {self.location} → {loc}")
             self.location = loc  # 위치 이동(direction 상관X)
+
     # path_stack을 따라 시작 지점으로 복귀하기 위한 Action을 반환
     def get_backtrack_action(self) -> Optional[Action]:
         """
@@ -163,7 +164,9 @@ class Agent:
         """
         if not self.path_stack:
             # path_stack이 비어있으면 더 이상 돌아갈 경로가 없음
-            print("DEBUG: path_stack이 비어있습니다. 더 이상 백트래킹할 경로가 없습니다.")
+            print(
+                "DEBUG: path_stack이 비어있습니다. 더 이상 백트래킹할 경로가 없습니다."
+            )
             return None
 
         # path_stack에서 가장 최근 방문했던 위치를 꺼냅니다. (이전 위치로 돌아감)
@@ -183,20 +186,18 @@ class Agent:
                 for direction in Direction
                 if direction.delta == (delta_row, delta_col)
             ),
-            None, # 일치하는 방향이 없을 경우 None 반환
+            None,  # 일치하는 방향이 없을 경우 None 반환
         )
 
         if self.direction != target_direction:
             return Action.TURN_RIGHT  # 방향 맞추기
-                
+
         else:
             self.path_stack.pop()
-            return Action.FORWARD # 이동동
-            
+            return Action.FORWARD  # 이동동
+
     # KB를 참조하여, 금을 찾기 위해 방문할 위치를 결정. 해당 위치로 이동하기 위한 Action 반환
     def get_exploration_action(self) -> Optional[Action]:
-
-        
         """
         탐색 모드에서 금을 찾기 위해 에이전트가 취할 다음 액션을 결정.
         안전한 인접 셀로 이동하거나, 필요시 회전하는 등의 탐색 행동을 반환.
@@ -208,7 +209,7 @@ class Agent:
 
         adjacent_cells = self.kb.get_adjacent_cells(self.location)
 
-        if not adjacent_cells: 
+        if not adjacent_cells:
             # 이동 가능한 방향이 X backtrak 진행
             return None
 
@@ -232,7 +233,7 @@ class Agent:
 
         # 이동 시도
         return Action.FORWARD
-    
+
     def print_path_stack_status(self):
         """
         현재 path_stack의 상태를 디버깅 목적으로 출력.
@@ -241,7 +242,9 @@ class Agent:
             print("DEBUG: path_stack은 현재 비어 있습니다.")
         else:
             # path_stack의 내용을 (row, col) 형태로 보기 쉽게 출력
-            stack_representation = ", ".join([
-                f"({loc.row},{loc.col})" for loc in self.path_stack
-            ])
-            print(f"DEBUG: path_stack 현재 상태: [{stack_representation}] (길이: {len(self.path_stack)})")
+            stack_representation = ", ".join(
+                [f"({loc.row},{loc.col})" for loc in self.path_stack]
+            )
+            print(
+                f"DEBUG: path_stack 현재 상태: [{stack_representation}] (길이: {len(self.path_stack)})"
+            )

@@ -10,11 +10,13 @@ from wumpus.models.percept import Percept
 class Knowledge_Cell:
     """에이전트의 지식 베이스 각 칸의 상태 저장하는 데이터 클래스"""
 
-    visited: bool = False   # agent가 직접 이동하여 안전함이 확인됨.
+    visited: bool = False  # agent가 직접 이동하여 안전함이 확인됨.
     possible_wumpus: int = 0
     possible_pit: int = 0
-    safe: bool = False      # agent가 percept를 했을 때 breeze와 stench가 나타나지 않았다면 인접셀에 표기(직접 가 보진 않았지만 안전함이 입증됨)
-    unsafe: bool = False    # agent가 이동 후 죽었던 위치 표기
+    safe: bool = (
+        False  # agent가 percept를 했을 때 breeze와 stench가 나타나지 않았다면 인접셀에 표기(직접 가 보진 않았지만 안전함이 입증됨)
+    )
+    unsafe: bool = False  # agent가 이동 후 죽었던 위치 표기
     wall: bool = False
 
     def __str__(self) -> str:
@@ -23,26 +25,27 @@ class Knowledge_Cell:
         # 0순위: Wall
         if self.wall:
             return "W"
-        
+
         # 1순위: Unsafe
         if self.unsafe:
             return "US"
-        
+
         # 2순위: Visited
         if self.visited:
             return "V"
-        
+
         # 3순위: Safe
         if self.safe:
             return "S"
-        
+
         contents = []
         # 4순위: Possible Wumpus + Possible Pit
         if self.possible_wumpus > 0 or self.possible_pit > 0:
             total_possibility = self.possible_wumpus + self.possible_pit
-            contents.append(str(total_possibility)) # int를 str으로 명시적 변환
-        
+            contents.append(str(total_possibility))  # int를 str으로 명시적 변환
+
         return "[" + ",".join(contents) + "]" if contents else "[ ]"
+
 
 @dataclass
 class Knowledge_base:
@@ -139,10 +142,10 @@ class Knowledge_base:
         )
 
         return sorted_loc
-    
+
     def _print_knowledge_base(self) -> None:
         """현재 환경 상태를 격자 형태로 출력
-        
+
         각 셀은 3x3 크기로 고정되며, 다음과 같은 형식으로 출력됩니다:
         +---+---+---+---+
         |[A]|[W]|[ ]|[G]|
@@ -154,10 +157,11 @@ class Knowledge_base:
         |[ ]|[ ]|[P]|[ ]|
         +---+---+---+---+
         """
+
         # 구분선 출력 함수
         def print_separator():
             print("+" + "---+" * self.size)
-            
+
         # 격자 출력
         print_separator()
         for row in range(self.size):
@@ -168,15 +172,17 @@ class Knowledge_base:
                 print(f"{cell_str:^3}", end="|")  # :^3는 3칸 중앙 정렬
             print()
             print_separator()
-    
+
     def mark_unsafe(self, location: Location) -> None:
 
         row, col = location.row, location.col
         self.grid[row][col].unsafe = True
 
         return
-    
-    def mark_wall(self,location: Location, percept: Percept, direction: Direction) -> None:
+
+    def mark_wall(
+        self, location: Location, percept: Percept, direction: Direction
+    ) -> None:
         row, col = location.row, location.col
 
         # bump가 감지되면 agent 앞에 있는 칸을 벽으로 표시
