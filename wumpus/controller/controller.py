@@ -61,15 +61,7 @@ class Controller:
 
         # 2) 감각 수집 + KB갱신
         percept = self.env.get_percept(self.agent.location, bump=self.is_bump)
-
-        # bump 발생시 W 표시
-        if percept.bump:
-            self.agent.kb.mark_wall(self.agent.location, percept, self.agent.direction)
-
-        # 처음 방문 한 곳이라면 possible_wumpus/possible_pit.safe 지식 업데이트
-        cell = self.agent.kb.grid[self.agent.location.row][self.agent.location.col]
-        if not cell.visited:
-            self.agent.kb.update_with_percept(self.agent.location, percept, self.agent.direction)
+        self.agent.update_state_with_percept(percept)
 
         # KB 출력
         self.agent.kb._print_knowledge_base()

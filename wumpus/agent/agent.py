@@ -42,9 +42,17 @@ class Agent:
         현재 위치에서 받은 Percept를 바탕으로
             - Knowledge_base 업데이트
         """
+        
+        # bump 발생시 W 표시
+        if percept.bump:
+            self.kb.mark_wall(self.location, percept, self.direction)
 
         # kb에 percept 반영
-        self.kb.update_with_percept(self.location, percept, self.direction)
+        row, col = self.location.row, self.location.col
+
+        cell = self.kb.grid[row][col]
+        if not cell.visited:
+            self.kb.update_with_percept(self.location, percept, self.direction)
 
     # ============================= agent의 행동(Action) =============================
     def perform_action(self, action: Action) -> Optional[str]:
@@ -146,7 +154,7 @@ class Agent:
 
     # ============================= 다음 행동 결정 =============================
 
-        def decide_next_action(self, percept:Percept) -> Optional[Action]:
+    def decide_next_action(self, percept:Percept) -> Optional[Action]:
         """
         update_state_with_percept 이후에 쓰여야함.
         흐름: update_state_with_percept -> decide_next_action -> perfrom_action
