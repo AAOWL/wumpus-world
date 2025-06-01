@@ -13,9 +13,9 @@ class Knowledge_Cell:
     visited: bool = False  # agent가 직접 이동하여 안전함이 확인됨.
     possible_wumpus: int = 0
     possible_pit: int = 0
-    safe: bool = (
-        False  # agent가 percept를 했을 때 breeze와 stench가 나타나지 않았다면 인접셀에 표기(직접 가 보진 않았지만 안전함이 입증됨)
-    )
+    
+    safe: bool = False  # agent가 percept를 했을 때 breeze와 stench가 나타나지 않았다면 인접셀에 표기(직접 가 보진 않았지만 안전함이 입증됨)
+    
     unsafe: bool = False  # agent가 이동 후 죽었던 위치 표기
     wall: bool = False
 
