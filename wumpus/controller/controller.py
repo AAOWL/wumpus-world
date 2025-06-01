@@ -51,111 +51,46 @@ class Controller:
         Returns:
              bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
         """
-        in_tracking = False
 
         if self.is_game_over:
             return False
 
-        # Agent가 이전턴에 죽었다면 부활 로직
-        if self.env.check_for_death(self.agent.location):
-            dead_at_location = self.agent.location
-            self.messages.append(f"에이전트가 {dead_at_location}에서 사망했습니다!")
-
-            # 1. 죽은 장소에 unsafe 표기. env의 has_agent 지우기
-            self.agent.kb.mark_unsafe(dead_at_location)
-
-            # 2. 시작 장소에서 부활/죽은 지점으로 되돌아가기.
-            self.agent.location = self.agent.path_stack.pop()
-            self.env.update_agent_position_in_grid(
-                dead_at_location, self.agent.location
-            )
-            print(f"DEBUG: agent는 이전칸인 {self.agent.location} 으로 돌아갑니다.")
-
-            # 3. 죽음으로 인해 게임이 종료되지 않음.
-            self.agent.is_alive = True
-
+        # 1) 이전 위치에서 Agent가 죽었는지 체크. 죽었다면 부활 후 진행
+        if self._handle_death_and_respawn():
             return True
 
-        # 감각 수집 (bump가 발생하면 인자로 넘겨줌)
+        # 2) 감각 수집 + KB갱신
         percept = self.env.get_percept(self.agent.location, bump=self.is_bump)
 
-        # KB에 bump 감지시 Wall 표시
+        # bump 발생시 W 표시
         if percept.bump:
             self.agent.kb.mark_wall(self.agent.location, percept, self.agent.direction)
 
         # 처음 방문 한 곳이라면 possible_wumpus/possible_pit.safe 지식 업데이트
-        if not self.agent.kb.grid[self.agent.location.row][
-            self.agent.location.col
-        ].visited:
-            self.agent.kb.update_with_percept(
-                self.agent.location, percept, self.agent.direction
-            )
+        cell = self.agent.kb.grid[self.agent.location.row][self.agent.location.col]
+        if not cell.visited:
+            self.agent.kb.update_with_percept(self.agent.location, percept, self.agent.direction)
 
-        # KB 출력력
+        # KB 출력
         self.agent.kb._print_knowledge_base()
 
-        # KB기반 행동 결정 로직 (wumpus/pit에 빠질 경우, (1,1)에서 부활하여 재시작하는것 X 추후 수정)
-        if self.agent.has_gold:
-            # 금을 가지고 있다면, 이동경로 path_stack을 참조하여 (1,1)까지 돌아간다.
-            # self.agent.path_stack으로부터 값 하나 꺼내서 target에 저장.
-            action = self.agent.get_backtrack_action()
+        # 3) KB기반 행동 결정 로직. 화살 사용 로직 X 구현필요 -> gold가 없는 상태로 시작지점(1,1)에 돌아왔다면, has_wumpus가 가장 높은 곳으로 이동하여 화살사용 하면 될듯
+        action = self.agent.decide_next_action(percept)
 
-            if action == None:
-                action = Action.CLIMB
-
-        else:
-            # 금을 가지고 있지 않다면, 금을 찾기위해 이동한다.
-            if percept.glitter:
-                action = Action.GRAB_GOLD  # 다음행동 금 줍기
-                print("금 발견! 금을 획득하고 탈출을 준비합니다.")
-
-            else:
-                # glitter 없으면 다음 행동 결정
-                action = self.agent.get_exploration_action()
-
-                if action is None:
-                    # 이동할 위치 없을 때 backtrack
-                    """
-                    |[ ]|[ ]|[ ]|[ ]|
-                    +---+---+---+---+
-                    |[ ]|[G]|[ ]|[ ]|
-                    +---+---+---+---+
-                    |[ ]|[W]|[W]|[A]|
-                    +---+---+---+---+
-                    |[ ]|[ ]|[P]|[ ]|
-
-                    |[ ]|[ ]|[ ]|[ ]|
-                    +---+---+---+---+
-                    |[ ]|[G]|[ ]|[ ]|
-                    +---+---+---+---+
-                    |[ ]|[W]|[W]|[ ]|
-                    +---+---+---+---+
-                    |[ ]|[ ]|[P]|[A]|
-                    """
-                    print("이동 가능한 위치가 없어 backtrack 시도")
-                    action = (
-                        self.agent.get_backtrack_action()
-                    )  # backtrack 성공 시 게임 계속 진행
-                    in_tracking = True
-
-        # 행동 수행, bump 여부 판단
+        # 4) 행동 수행, bump 여부 판단
         success, self.is_bump = self._process_action(action)  # type: ignore
-
-        if in_tracking and action == Action.FORWARD:
-            self.agent.path_stack.pop()
-
-        self._print_game_state()
-        self.total_steps += 1
-
-        # agent가 움직인 후에 죽음을 체크
+        
+        # 5) agent가 이동 한 후에 죽음을 체크
         if self.env.check_for_death(self.agent.location):
             self.agent.is_alive = False  # agent 상태 사망으로 변경
 
+        # 6) 상태 출력
+        self._print_game_state()
+        self.total_steps += 1
+
+        # 7) 스텝 한계 체크
         # steps수 200 이상되면 종료. 금을 지닌채로 200번 넘으면 종료 -> 금을 가지고 끝났으므로 성공! 이 뜸. 수정필요.
-        if self.total_steps >= 200:
-            return self.is_game_over
-        else:
-            return not self.is_game_over
+        return self.check_step_limit()
 
     def run_game(self) -> Tuple[bool, int]:
         """게임을 끝까지 실행
@@ -303,3 +238,48 @@ class Controller:
         print("=" * 40)
 
         return is_victory, self.env.score
+    
+    def _handle_death_and_respawn(self) -> bool:
+        
+        """
+        Agent가 죽었는지 확인. 죽었다면
+            - 죽은 위치에 kb에 unsafe 표기.
+            - 죽기 직전의 위치로 되돌아 감.
+            - return True
+
+        죽지 않았다면
+            - return False
+        """
+
+        # Agent가 이전턴에 죽었다면 부활 로직
+        if self.env.check_for_death(self.agent.location):
+            dead_at_location = self.agent.location
+            self.messages.append(f"에이전트가 {dead_at_location}에서 사망했습니다!")
+
+            # 1. 죽은 장소에 unsafe 표기. env의 has_agent 지우기
+            self.agent.kb.mark_unsafe(dead_at_location)
+
+            # 2. 시작 장소에서 부활. 죽기 직전의 지점으로 되돌아가기.
+            self.agent.location = self.agent.path_stack.pop()
+            self.env.update_agent_position_in_grid(
+                dead_at_location, self.agent.location
+            )
+            print(f"DEBUG: agent는 이전칸인 {self.agent.location} 으로 돌아갑니다.")
+
+            # 3. 죽음으로 인해 게임이 종료되지 않음.
+            self.agent.is_alive = True
+
+            return True
+        
+        # Agent가 이전턴에 죽지 않았음
+        else:
+            return False
+        
+    def check_step_limit(self) -> bool:
+        """
+        total_steps가 200이 넘어가는 경우, 실패로 종료(game over)
+        """
+        if self.total_steps >= 200:
+            return self.is_game_over
+        else:
+            return not self.is_game_over
