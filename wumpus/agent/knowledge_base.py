@@ -68,9 +68,10 @@ class Knowledge_base:
     def update_with_percept(self, location: Location, percept: Percept) -> None:
         """
         현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"
-        인접 셀 중 유효 셀들 가져와서
-            - Breeze/Stench 감지시 possible 가중치 증가
-            - 둘 다 없으면 safe 마킹
+            - 현재 위치를 방문 및 safe 처리
+            - 인접 셀 중 유효 셀들 필터링
+            - Breeze/Stench 감지시 인접셀의 possible_pit/possible_wumpus 가중치 증가
+            - 둘 다 없으면 인접한 모든 셀 safe 마킹
         """
         # 1) 현재 위치 마킹
         self._mark_current_as_visited_and_safe(location)
@@ -83,17 +84,18 @@ class Knowledge_base:
 
     def get_adjacent_cells(self, location: Location) -> List[Location]:
         """
-        방문 한 적 없는, 이동을 고려 해 봐야하는 인접셀 반환
-        인접 셀 중 벽X 방문x 위험x인 셀들을 위험도(possible_wumpus + possible_pit)기준 오름차순으로 정렬하여 반환.
+        방문하지 않은 인접 셀들을 반환. 
+        인접 셀 중 벽이 아니고 아직 방문하지 않은 모든 셀을 
+        위험도(possible_wumpus + possible_pit) 기준으로 오름차순 정렬하여 반환.
         """
         adj_loc = location.get_adjacent()
 
         valid_loc = [
             adj
             for adj in adj_loc
-            if not self.grid[adj.row][adj.col].wall
-            and not self.grid[adj.row][adj.col].visited
-            and not self.grid[adj.row][adj.col].unsafe
+            if not self.grid[adj.row][adj.col].wall         # 벽을 피함
+            and not self.grid[adj.row][adj.col].visited     # 방문 한 적 있는 위치를 피함
+            and not self.grid[adj.row][adj.col].unsafe      # 죽은 적 있는 위치를 피함.
         ]
 
         # 위험도 기준으로 정렬

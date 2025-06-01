@@ -46,41 +46,66 @@ class Controller:
         self._print_game_state()
 
     def step(self) -> bool:
-        """한 단계 진행
+        """
+        한 단계 진행한다.
 
+        1) 이미 게임 종료 플래그가 세워져 있으면 False를 반환하며 즉시 종료.
+        2) 이전 위치에서 Agent가 사망했는지 확인하고, 
+        사망 상태라면 _handle_death_and_respawn()로 부활 처리 후 True 반환(게임 계속).
+        3) 현재 위치에서 환경으로부터 Percept을 반환.
+            - bump 여부는 self.is_bump 플래그를 사용해 전달.
+            - 받은 Percept를 agent.update_state_with_percept()로 KB에 모두 반영.
+        4) 최신 지식 베이스를 출력(self.agent.kb._print_knowledge_base()).
+        5) 에이전트의 decide_next_action(percept)를 호출해 다음 행동을 결정.
+        6) 결정된 action을 _process_action(action)으로 수행하고, 
+        결과(success), bump 여부(self.is_bump) 갱신.
+        7) 이동(혹은 다른 action) 후에 env.check_for_death(self.agent.location)으로 
+        에이전트 사망 여부를 다시 확인하여 self.agent.is_alive를 False로 설정.
+        8) 현재 게임 상태(_print_game_state())를 화면에 출력하고, total_steps를 1 증가.
+        9) 스텝 한계를 확인(check_step_limit()):
+            - total_steps가 200 이상이면 False 반환(게임 종료).
+            - 그렇지 않으면 True 반환(게임 계속).
+
+        **특이사항**
+            - Agent가 사망해도 게임이 즉시 끝나지 않습니다. 사망 시에는 부활 로직(_handle_death_and_respawn)이 먼저 실행되고,
+            그 결과 True를 반환하여 다음 스텝으로 넘어갑니다.
+            - 게임 종료 조건은 오직 스텝 수가 200을 넘는 경우뿐입니다. (“금 획득” 또는 “Wumpus 사살”로 인한 종료 로직은 추후 보완 필요할 수 있음)
+        
         Returns:
-             bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
+            bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
         """
 
+        # 1)
         if self.is_game_over:
             return False
 
-        # 1) 이전 위치에서 Agent가 죽었는지 체크. 죽었다면 부활 후 진행
+        # 2) 사망/부활 로직 
         if self._handle_death_and_respawn():
             return True
 
-        # 2) 감각 수집 + KB갱신
+        # 3) percept 수집 + KB 업데이트
         percept = self.env.get_percept(self.agent.location, bump=self.is_bump)
         self.agent.update_state_with_percept(percept)
 
-        # KB 출력
+        # 4) KB 출력 (디버깅)
         self.agent.kb._print_knowledge_base()
 
-        # 3) KB기반 행동 결정 로직. 화살 사용 로직 X 구현필요 -> gold가 없는 상태로 시작지점(1,1)에 돌아왔다면, has_wumpus가 가장 높은 곳으로 이동하여 화살사용 하면 될듯
+        # 5) 행동 결정 로직. 
+        # 화살 사용 로직 X 구현필요 -> gold가 없는 상태로 시작지점(1,1)에 돌아왔다면, has_wumpus가 가장 높은 곳으로 이동하여 화살사용 하면 될듯
         action = self.agent.decide_next_action(percept)
 
-        # 4) 행동 수행, bump 여부 판단
+        # 6) 행동 수행, bump 여부 판단
         success, self.is_bump = self._process_action(action)  # type: ignore
         
-        # 5) agent가 이동 한 후에 죽음을 체크
+        # 7) agent 이동 한/ 사망 체크
         if self.env.check_for_death(self.agent.location):
             self.agent.is_alive = False  # agent 상태 사망으로 변경
 
-        # 6) 상태 출력
+        # 8) 상태 출력
         self._print_game_state()
         self.total_steps += 1
 
-        # 7) 스텝 한계 체크
+        # 9) 스텝 한계 체크
         # steps수 200 이상되면 종료. 금을 지닌채로 200번 넘으면 종료 -> 금을 가지고 끝났으므로 성공! 이 뜸. 수정필요.
         return self.check_step_limit()
 
@@ -234,6 +259,8 @@ class Controller:
     def _handle_death_and_respawn(self) -> bool:
         
         """
+        ** 해당 메서드도 total_steps를 증가시킨다. **
+
         Agent가 죽었는지 확인. 죽었다면
             - 죽은 위치에 kb에 unsafe 표기.
             - 죽기 직전의 위치로 되돌아 감.
@@ -261,6 +288,9 @@ class Controller:
             # 3. 죽음으로 인해 게임이 종료되지 않음.
             self.agent.is_alive = True
 
+            # 4. total_steps 증가
+            self.total_steps += 1
+            
             return True
         
         # Agent가 이전턴에 죽지 않았음
