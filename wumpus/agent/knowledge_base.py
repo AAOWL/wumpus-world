@@ -54,7 +54,7 @@ class Knowledge_base:
     """
 
     # 지도 정보
-    size: int = 4
+    size: int = 6
     grid: List[List[Knowledge_Cell]] = field(
         default_factory=list
     )  # 각 칸이 Knowledge_Cell로 구성됨
