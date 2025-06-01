@@ -52,7 +52,7 @@ class Agent:
 
         cell = self.kb.grid[row][col]
         if not cell.visited:
-            self.kb.update_with_percept(self.location, percept, self.direction)
+            self.kb.update_with_percept(self.location, percept)
 
     # ============================= agent의 행동(Action) =============================
     def perform_action(self, action: Action) -> Optional[str]:

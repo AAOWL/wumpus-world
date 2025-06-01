@@ -65,11 +65,8 @@ class Knowledge_base:
             [Knowledge_Cell() for _ in range(self.size)] for _ in range(self.size)
         ]
 
-    def update_with_percept(self, location: Location, percept: Percept, direction: Direction) -> None:
+    def update_with_percept(self, location: Location, percept: Percept) -> None:
         """
-        !!! 다른곳에서, 해당 메서드에 매개변수 3개넣고 사용중이라 direction: Direction을 삭제하지 않음. !!!
-        !!! 나중에 수정 필요
-    
         현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"
         인접 셀 중 유효 셀들 가져와서
             - Breeze/Stench 감지시 possible 가중치 증가
