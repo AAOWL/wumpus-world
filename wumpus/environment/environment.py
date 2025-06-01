@@ -214,3 +214,55 @@ class Environment:
         # 새로운 위치가 유효하다면 has_agent를 True로
         if self.is_valid_location(new_location):
             self.grid[new_location.row - 1][new_location.col - 1].has_agent = True
+
+    def set_map(
+        self,
+        wumpus_locations: list[Location],
+        pit_locations: list[Location],
+        gold_location: Location,
+        agent_location: Location = Location(1, 1),
+    ) -> None:
+        """
+        테스트용 맵을 직접 설정합니다.
+
+        1) 기존에 배치된 모든 오브젝트 초기화
+        2) wumpus_locations 리스트에 따른 Wumpus 배치
+        3) pit_locations 리스트에 따른 Pit 배치
+        4) gold_location에 따른 Gold 배치
+        5) agent_location에 따른 Agent 배치
+        """
+        # --- 1) 기존 배치 초기화 ---
+        for r in range(self.size):
+            for c in range(self.size):
+                cell = self.grid[r][c]
+                cell.has_wumpus = False
+                cell.has_pit = False
+                cell.has_gold = False
+                cell.has_agent = False
+
+        # --- 2) Wumpus 배치 ---
+        for loc in wumpus_locations:
+            # Location은 1-based → grid 인덱스는 0-based
+            if 1 <= loc.row <= self.size and 1 <= loc.col <= self.size:
+                self.grid[loc.row - 1][loc.col - 1].place_wumpus
+            else:
+                print(f"WARNING: Wumpus 위치 {loc}가 범위를 벗어났습니다.")
+
+        # --- 3) Pit 배치 ---
+        for loc in pit_locations:
+            if 1 <= loc.row <= self.size and 1 <= loc.col <= self.size:
+                self.grid[loc.row - 1][loc.col - 1].place_pit
+            else:
+                print(f"WARNING: Pit 위치 {loc}가 범위를 벗어났습니다.")
+
+        # --- 4) Gold 배치 ---
+        if 1 <= gold_location.row <= self.size and 1 <= gold_location.col <= self.size:
+            self.grid[gold_location.row - 1][gold_location.col - 1].place_gold
+        else:
+            print(f"WARNING: Gold 위치 {gold_location}가 범위를 벗어났습니다.")
+
+        # --- 5) Agent 배치 ---
+        if 1 <= agent_location.row <= self.size and 1 <= agent_location.col <= self.size:
+            self.grid[agent_location.row - 1][agent_location.col - 1].place
+        else:
+            print(f"WARNING: Agent 위치 {agent_location}가 범위를 벗어났습니다.")

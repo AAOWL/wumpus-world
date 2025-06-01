@@ -15,6 +15,7 @@ class Agent:
     """Wumpus World의 에이전트
 
     에이전트는 다음과 같은 상태를 유지합니다:
+        - agent가 backtrack중인지 여부
         - agent의 생존 여부 (is_alive)
         - 현재 위치와 방향
         - 화살의 소유 여부
@@ -24,6 +25,7 @@ class Agent:
     """
 
     # 현재 상태
+    is_backtracking: bool = False
     is_alive: bool = True
     location: Location = field(default_factory=lambda: Location(1, 1))
     direction: Direction = Direction.NORTH
@@ -79,8 +81,10 @@ class Agent:
         if not (1 <= new_location.row <= 4 and 1 <= new_location.col <= 4):
             return "벽에 부딪혔습니다."
 
-        # 금이 없을 때, 현재 위치를 스택에 저장
-        if not self.has_gold:
+        # 둘 중 하나가 참일때는 path_stack 저장X
+        if self.has_gold or self.is_backtracking:
+            None
+        else:
             self.path_stack.append(self.location)
 
         self.location = new_location
@@ -141,7 +145,7 @@ class Agent:
         return None
 
     # ============================= 다음 행동 결정 =============================
-    def decide_next_action(self) -> Optional[Action]:
+    def decide_next_action(self, percept:Percept) -> Optional[Action]:
         """
         update_state_with_percept 이후에 쓰여야함.
         흐름: update_state_with_percept -> decide_next_action -> perfrom_action
@@ -152,7 +156,8 @@ class Agent:
           3) 백트래킹 모드인지 아닌지 판정하여 → get_backtrack_action()
           4) 그 외 탐색 모드 → get_exploration_action()
         """
-
+        self.is_backtracking = False
+        
         # 1) 금을 이미 가지고 있다면
         if self.has_gold:
             # 시작 위치(1,1)까지 되돌아오면 CLIMB
@@ -162,7 +167,7 @@ class Agent:
             return self.get_backtrack_action()
 
         # 2) 현재 칸에 GOLD(Glitter) 가 있으면 바로 줍기
-        if self.kb.grid[self.location.row][self.location.col].has_gold:
+        if percept.glitter:
             return Action.GRAB_GOLD
 
         # 3) 아직 탐색 중일 때: 안전한 인접 칸 선택
@@ -219,6 +224,7 @@ class Agent:
 
         else:
             self.path_stack.pop()
+            self.is_backtracking = True
             return Action.FORWARD  # 이동
 
     def get_exploration_action(self) -> Optional[Action]:
