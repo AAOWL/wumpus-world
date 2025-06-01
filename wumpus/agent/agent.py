@@ -145,7 +145,8 @@ class Agent:
         return None
 
     # ============================= 다음 행동 결정 =============================
-    def decide_next_action(self, percept:Percept) -> Optional[Action]:
+
+        def decide_next_action(self, percept:Percept) -> Optional[Action]:
         """
         update_state_with_percept 이후에 쓰여야함.
         흐름: update_state_with_percept -> decide_next_action -> perfrom_action
