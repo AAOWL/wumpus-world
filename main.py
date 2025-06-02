@@ -70,7 +70,6 @@ def get_action(command: str) -> Optional[Action]:
 def main():
     """게임 메인 함수"""
     print_title()
-    print_help()
 
     while True:
         # 새 게임 시작 여부 확인
@@ -83,33 +82,14 @@ def main():
         controller = Controller()
         controller.start_game()
 
-        # 게임 루프
+        # 게임 자동 실행
         while not controller.is_game_over:
-            # DEBUG용 path_stack 출력
-            controller.agent.print_path_stack_status()
-
-            # 사용자 입력 받기
-            command = input("\n행동을 선택하세요 (h: 도움말): ")
-
-            # 도움말
-            if command.lower() == "h":
-                print_help()
-                continue
-
-            # 게임 종료
-            if command.lower() == "q":
-                print("\n게임을 종료합니다.")
-                sys.exit(0)
-
-            # 행동 변환 및 실행
-            action = get_action(command)
-            if action is None:
-                print("잘못된 명령입니다. 'h'를 입력하여 도움말을 확인하세요.")
-                continue
-
-            # 행동 실행 (자동으로 상태가 출력됨)
+            # 상태 출력 후 잠시 대기
+            time.sleep(1)
+            
+            # 다음 단계 실행
             if not controller.step():
-                break  # 게임 종료
+                break
 
         # 게임 결과 출력 (승리/패배)
         is_victory, final_score = controller._get_game_result()

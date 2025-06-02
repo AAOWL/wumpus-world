@@ -162,10 +162,9 @@ class Agent:
         현재 상태와 Percept를 바탕으로, 다음에 취할 Action을 결정.
           1) 금을 가지고 있다면 → 되돌아가기(백트래킹) 또는 CLIMB
           2) 현재 위치에 금이 반짝거리면 → GRAB_GOLD
-          3) 백트래킹 모드인지 아닌지 판정하여 → get_backtrack_action()
-          4) 그 외 탐색 모드 → get_exploration_action()
+          3) 인접셀에 탐험 가능한 곳이 있다면 -> get_exploration_cation()
+          4) 그 외 백트래킹 모드 → get_backtrack_action()
         """
-        self.is_backtracking = False
         
         # 1) 금을 이미 가지고 있다면
         if self.has_gold:

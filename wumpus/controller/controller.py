@@ -69,7 +69,7 @@ class Controller:
         **특이사항**
             - Agent가 사망해도 게임이 즉시 끝나지 않습니다. 사망 시에는 부활 로직(_handle_death_and_respawn)이 먼저 실행되고,
             그 결과 True를 반환하여 다음 스텝으로 넘어갑니다.
-            - 게임 종료 조건은 오직 스텝 수가 200을 넘는 경우뿐입니다. (“금 획득” 또는 “Wumpus 사살”로 인한 종료 로직은 추후 보완 필요할 수 있음)
+            - 게임 종료 조건은 오직 스텝 수가 200을 넘는 경우뿐입니다.
         
         Returns:
             bool: 게임이 계속 진행 중이면 True, 종료되었으면 False
@@ -106,7 +106,6 @@ class Controller:
         self.total_steps += 1
 
         # 9) 스텝 한계 체크
-        # steps수 200 이상되면 종료. 금을 지닌채로 200번 넘으면 종료 -> 금을 가지고 끝났으므로 성공! 이 뜸. 수정필요.
         return self.check_step_limit()
 
     def run_game(self) -> Tuple[bool, int]:
