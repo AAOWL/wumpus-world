@@ -244,25 +244,25 @@ class Environment:
         for loc in wumpus_locations:
             # Location은 1-based → grid 인덱스는 0-based
             if 1 <= loc.row <= self.size and 1 <= loc.col <= self.size:
-                self.grid[loc.row - 1][loc.col - 1].place_wumpus
+                self.grid[loc.row - 1][loc.col - 1].place_wumpus()
             else:
                 print(f"WARNING: Wumpus 위치 {loc}가 범위를 벗어났습니다.")
 
         # --- 3) Pit 배치 ---
         for loc in pit_locations:
             if 1 <= loc.row <= self.size and 1 <= loc.col <= self.size:
-                self.grid[loc.row - 1][loc.col - 1].place_pit
+                self.grid[loc.row - 1][loc.col - 1].place_pit()
             else:
                 print(f"WARNING: Pit 위치 {loc}가 범위를 벗어났습니다.")
 
         # --- 4) Gold 배치 ---
         if 1 <= gold_location.row <= self.size and 1 <= gold_location.col <= self.size:
-            self.grid[gold_location.row - 1][gold_location.col - 1].place_gold
+            self.grid[gold_location.row - 1][gold_location.col - 1].place_gold()
         else:
             print(f"WARNING: Gold 위치 {gold_location}가 범위를 벗어났습니다.")
 
         # --- 5) Agent 배치 ---
         if 1 <= agent_location.row <= self.size and 1 <= agent_location.col <= self.size:
-            self.grid[agent_location.row - 1][agent_location.col - 1].place
+            self.grid[agent_location.row - 1][agent_location.col - 1].has_agent = True
         else:
             print(f"WARNING: Agent 위치 {agent_location}가 범위를 벗어났습니다.")

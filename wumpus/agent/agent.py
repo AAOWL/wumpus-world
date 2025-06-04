@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, List
+from collections import deque
 
 from wumpus.models.action import Action
 from wumpus.models.direction import Direction
@@ -27,6 +28,7 @@ class Agent:
     # 현재 상태
     is_backtracking: bool = False
     is_alive: bool = True
+    is_hunting: bool = False
     location: Location = field(default_factory=lambda: Location(1, 1))
     direction: Direction = Direction.NORTH
 
@@ -42,7 +44,10 @@ class Agent:
         현재 위치에서 받은 Percept를 바탕으로
             - Knowledge_base 업데이트
         """
-        
+        # Scream 발생시 바라보고 있는 방향의 wumpus를 삭제
+        if percept.scream:
+            self.kb.delete_wumpus(self.location, self.direction)
+
         # bump 발생시 W 표시
         if percept.bump:
             self.kb.mark_wall(self.location, percept, self.direction)
@@ -183,9 +188,12 @@ class Agent:
         if exploration_action is not None:
             return exploration_action
 
-        # 4) 그 외 탐색 모드: 백트래킹
-        return self.get_backtrack_action()
-
+        # 4) path_stack이 비어있지 않다면: 백트래킹
+        if self.path_stack and not self.is_hunting:
+            return self.get_backtrack_action()
+        
+        # 5) wumpus 사냥시작 (화살사용).
+        return self.get_hunt_action()
     def get_backtrack_action(self) -> Optional[Action]:
         """
         path_stack에서 다음 위치를 꺼내 현재 에이전트의 위치와 방향을 기반으로
@@ -275,6 +283,118 @@ class Agent:
             return Action.TURN_RIGHT  # 방향 맞추기
 
         # 이동 시도
+        self.is_backtracking = False
+        return Action.FORWARD
+
+    def get_hunt_action(self) -> Optional[Action]:
+        self.is_hunting = True #사냥모드 상태 변경
+        target_location = self._find_max_possible_wumpus_location()
+
+        path = self._find_safe_path(target_location)
+               
+        return self._get_next_action_towards(path)
+
+    def _find_max_possible_wumpus_location(self) -> Location:
+        """
+        kb에서 possible_wumpus가 가장 높은 Cell의 위치를 Location으로 반환.
+        """
+        max_prob = -1
+        target_location = None
+
+        for row in range(self.kb.size):
+            for col in range(self.kb.size):
+                cell = self.kb.grid[row][col]
+                if cell.possible_wumpus > max_prob and not cell.wall:
+                    max_prob = cell.possible_wumpus
+                    target_location = Location(row, col)
+        
+        return target_location
+    
+    def _find_safe_path(self, target_location: Location) -> List[Location]:
+        """
+        BFS를 사용하여 현재 위치에서 target_location까지 안전한 경로를 찾는다.
+        위험도(possible_wumpus + possible_pit) > 0 이나 벽/죽은 셀은 피한다.
+
+        Args:
+            target_location (Location): 도착 위치.
+
+        Returns:
+            List[Location]: 이동 경로(시작~목표 위치까지), 없으면 빈 리스트.
+        """
+
+        visited = set()
+        queue = deque([(self.location, [self.location])])  # (현재위치, 경로) 형태로 큐 초기화
+
+        while queue:
+            current, path = queue.popleft()
+
+            # 현재 위치의 인접셀이 목표 위치라면 경로 반환
+            for adj in current.get_adjacent():
+                if adj == target_location:
+                    return path + [adj]
+
+            # 인접 셀 탐색
+            for adj in current.get_adjacent():
+
+                # 유효범위 검사
+                if not (1 <= adj.row <= self.kb.size and 1 <= adj.col <= self.kb.size):
+                    continue
+
+                # 이미 방문했거나, wall/unsafe/위험도 0이 아닌경우 skip
+                cell = self.kb.grid[adj.row][adj.col]
+                if (
+                    adj in visited or 
+                    cell.wall or 
+                    cell.unsafe or 
+                    (cell.possible_wumpus + cell.possible_pit > 0)
+                ):
+                    continue
+
+                # 새로 방문한 집합 추가
+                visited.add(adj)
+
+                # 현재 path에 adj를 붙여 큐에 추가
+                queue.append((adj, path + [adj]))
+
+        return []  # 경로를 찾을 수 없음
+
+    def _get_next_action_towards(self, path: List[Location]) -> Optional[Action]:
+        """
+        주어진 경로(path)에서 다음 셀을 목표로 이동하기 위한 Action 반환
+
+        Args:
+            path (List[Loaction]): 이동 경로
+
+        Return:
+            Optinal[Action]: Forward, Turn_Right, Turn_Left 등
+        """
+
+        if len(path) < 2:
+            return None # 경로 없음 or 현재위치가 목표 위치의 한칸 전
+        
+        next_cell = path[1] #path[0]는 현재 위치
+        target_cell = path[len(path) - 1]
+
+        delta_row = next_cell.row - self.location.row
+        delta_col = next_cell.col - self.location.col
+
+        target_direction = next(
+            (d for d in Direction if d.delta == (delta_row, delta_col)),
+            None
+        )
+
+        if target_direction is None:
+            print("DEBUG: 방향 계산 실패 _get_next_action_towards")
+            return None
+        
+        if self.direction != target_direction:
+            return Action.TURN_RIGHT  # 단순히 방향 맞춤
+
+        for adj in self.location.get_adjacent():
+            if adj == target_cell:
+                self.is_hunting = False
+                return Action.SHOOT_ARROW
+        
         return Action.FORWARD
 
     # ============================= Debug용 =============================

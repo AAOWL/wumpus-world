@@ -199,6 +199,21 @@ class Knowledge_base:
                 self.grid[wall_row][wall_col].wall = True
             return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
 
+    def delete_wumpus(self, location: Location, direction: Direction) -> None:
+        current_row, current_col = location.row, location.col
+        dr, dc = direction.delta
+
+        while (
+            0 <= current_row + dr < self.size and 0 <= current_col + dc < self.size
+        ):
+            current_row += dr
+            current_col += dc
+            if self.grid[current_row][current_col].unsafe and self.grid[current_row][current_col].possible_wumpus > 0:
+                self.grid[current_row][current_col].unsafe = False
+                self.grid[current_row][current_col].safe = True
+                self.grid[current_row][current_col].possible_wumpus = 0
+                return
+            
     def _print_knowledge_base(self) -> None:
         """
         DEBUG용

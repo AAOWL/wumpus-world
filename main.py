@@ -13,6 +13,9 @@ from typing import Optional
 from wumpus.controller.controller import Controller
 from wumpus.models.action import Action
 
+# set_map용
+from wumpus.models.location import Location
+from typing import List
 
 def print_title():
     """게임 타이틀 출력"""
@@ -73,7 +76,8 @@ def main():
 
     while True:
         # 새 게임 시작 여부 확인
-        start = input("\n새 게임을 시작하시겠습니까? (y/n): ")
+        start = "y"
+        # input("\n새 게임을 시작하시겠습니까? (y/n): ")
         if start.lower() != "y":
             print("\n게임을 종료합니다. 안녕히 가세요!")
             sys.exit(0)

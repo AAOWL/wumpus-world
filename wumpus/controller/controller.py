@@ -40,6 +40,17 @@ class Controller:
 
         # 환경과 에이전트 초기화
         self.env = Environment()
+
+        #self.env.set_map([Location(1,2), Location(2,1)],
+        #                 [Location(4,4)],
+        #                 Location(3,4),
+        #                 Location(1,1)
+        #                )
+
+        #self.env.set_map([Location(2,3), Location(1,3)],
+        #                       [Location(3,2), Location(3,1)],
+        #                       Location(3,4),
+        #                       Location(1,1))
         self.agent = Agent()
 
         print("새로운 게임을 시작합니다!")
@@ -102,6 +113,7 @@ class Controller:
             self.agent.is_alive = False  # agent 상태 사망으로 변경
 
         # 8) 상태 출력
+        self.agent.print_path_stack_status()
         self._print_game_state()
         self.total_steps += 1
 
