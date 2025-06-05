@@ -195,8 +195,13 @@ class Knowledge_base:
             dr, dc = direction.delta
             wall_row = row + dr
             wall_col = col + dc
+
+            wall_cell = self.grid[wall_row][wall_col]
             if 0 <= wall_row < self.size and 0 <= wall_col < self.size:
-                self.grid[wall_row][wall_col].wall = True
+                wall_cell.wall = True
+                wall_cell.possible_pit = 0
+                wall_cell.possible_wumpus = 0
+                
             return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
 
     def delete_wumpus(self, location: Location, direction: Direction) -> None:

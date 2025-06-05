@@ -32,7 +32,7 @@ class Agent:
     location: Location = field(default_factory=lambda: Location(1, 1))
     direction: Direction = Direction.NORTH
 
-    has_arrow: bool = True
+    count_arrow: int = 3
     has_gold: bool = False
     kb: Knowledge_base = field(default_factory=Knowledge_base)
 
@@ -123,10 +123,10 @@ class Agent:
             str: 발사 실패 시 실패 이유
             None: 발사 성공
         """
-        if not self.has_arrow:
+        if self.count_arrow == 0:
             return "화살이 없습니다."
 
-        self.has_arrow = False
+        self.count_arrow = self.count_arrow - 1
         return None
 
     def _grab_gold(self) -> Optional[str]:
@@ -183,17 +183,21 @@ class Agent:
         if percept.glitter:
             return Action.GRAB_GOLD
 
-        # 3) 아직 탐색 중일 때: 안전한 인접 칸 선택
+        # 3) 인접 셀 중, 이동 가능한 셀 있다면 그것이 최우선
         exploration_action = self.get_exploration_action()
         if exploration_action is not None:
+            self._set_mode(backtracking=False, hunting=False)
             return exploration_action
 
-        # 4) path_stack이 비어있지 않다면: 백트래킹
+        # 4) path_stack이 있고, 사냥중이 아니라면: 백트래킹
         if self.path_stack and not self.is_hunting:
+            self._set_mode(backtracking=True, hunting=False)
             return self.get_backtrack_action()
         
-        # 5) wumpus 사냥시작 (화살사용).
+        # 5) 그렇지 않다면 wumpus 사냥시작 (화살사용).
+        self._set_mode(backtracking=False, hunting=True)
         return self.get_hunt_action()
+    
     def get_backtrack_action(self) -> Optional[Action]:
         """
         path_stack에서 다음 위치를 꺼내 현재 에이전트의 위치와 방향을 기반으로
@@ -240,7 +244,6 @@ class Agent:
 
         else:
             self.path_stack.pop()
-            self.is_backtracking = True
             return Action.FORWARD  # 이동
 
     def get_exploration_action(self) -> Optional[Action]:
@@ -283,11 +286,9 @@ class Agent:
             return Action.TURN_RIGHT  # 방향 맞추기
 
         # 이동 시도
-        self.is_backtracking = False
         return Action.FORWARD
 
     def get_hunt_action(self) -> Optional[Action]:
-        self.is_hunting = True #사냥모드 상태 변경
         target_location = self._find_max_possible_wumpus_location()
 
         path = self._find_safe_path(target_location)
@@ -308,7 +309,7 @@ class Agent:
                     max_prob = cell.possible_wumpus
                     target_location = Location(row, col)
         
-        return target_location
+        return target_location # type: ignore
     
     def _find_safe_path(self, target_location: Location) -> List[Location]:
         """
@@ -392,10 +393,13 @@ class Agent:
 
         for adj in self.location.get_adjacent():
             if adj == target_cell:
-                self.is_hunting = False
                 return Action.SHOOT_ARROW
         
         return Action.FORWARD
+
+    def _set_mode(self, backtracking: bool, hunting: bool) -> None:
+        self.is_backtracking = backtracking
+        self.is_hunting = hunting
 
     # ============================= Debug용 =============================
     def print_path_stack_status(self):

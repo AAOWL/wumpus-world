@@ -27,6 +27,8 @@ class Controller:
     env: Environment = field(default_factory=Environment)
     agent: Agent = field(default_factory=Agent)
     is_bump: bool = False
+    is_scream: bool = False
+
     # 게임 상태
     is_game_over: bool = False
     total_steps: int = 0
@@ -40,17 +42,6 @@ class Controller:
 
         # 환경과 에이전트 초기화
         self.env = Environment()
-
-        #self.env.set_map([Location(1,2), Location(2,1)],
-        #                 [Location(4,4)],
-        #                 Location(3,4),
-        #                 Location(1,1)
-        #                )
-
-        #self.env.set_map([Location(2,3), Location(1,3)],
-        #                       [Location(3,2), Location(3,1)],
-        #                       Location(3,4),
-        #                       Location(1,1))
         self.agent = Agent()
 
         print("새로운 게임을 시작합니다!")
@@ -95,7 +86,7 @@ class Controller:
             return True
 
         # 3) percept 수집 + KB 업데이트
-        percept = self.env.get_percept(self.agent.location, bump=self.is_bump)
+        percept = self.env.get_percept(self.agent.location, bump=self.is_bump, scream=self.is_scream)
         self.agent.update_state_with_percept(percept)
 
         # 4) KB 출력 (디버깅)
@@ -106,7 +97,7 @@ class Controller:
         action = self.agent.decide_next_action(percept)
 
         # 6) 행동 수행, bump 여부 판단
-        success, self.is_bump = self._process_action(action)  # type: ignore
+        success, self.is_bump , self.is_scream = self._process_action(action)  # type: ignore
         
         # 7) agent 이동 한/ 사망 체크
         if self.env.check_for_death(self.agent.location):
@@ -135,7 +126,7 @@ class Controller:
 
         return self._get_game_result()
 
-    def _process_action(self, action: Action) -> tuple[bool, bool]:
+    def _process_action(self, action: Action) -> tuple[bool, bool, bool]:
         """에이전트의 행동을 처리
 
         Args:
@@ -149,6 +140,7 @@ class Controller:
         )
 
         is_bump = action == Action.FORWARD and message == "벽에 부딪혔습니다."
+        is_scream = action == Action.SHOOT_ARROW and message == "Wumpus를 죽였습니다!"
 
         # 결과 메시지 저장
         if message:
@@ -171,7 +163,7 @@ class Controller:
                 self.agent._turn_right()
             elif action == Action.SHOOT_ARROW:
                 # 화살 사용
-                self.agent.has_arrow = False
+                self.agent._shoot_arrow()
             elif action == Action.GRAB_GOLD:
                 # 금 획득
                 self.agent.has_gold = True
@@ -179,7 +171,7 @@ class Controller:
                 # 탈출 성공
                 self.is_game_over = True
 
-        return success, is_bump
+        return success, is_bump, is_scream
 
     def _print_game_state(self) -> None:
         """현재 게임 상태를 출력"""
@@ -192,7 +184,7 @@ class Controller:
         print(f"현재 점수: {self.env.score}")
         print(f"에이전트 위치: {self.agent.location}")
         print(f"에이전트 방향: {self.agent.direction.name}")
-        print(f"화살 보유: {'예' if self.agent.has_arrow else '아니오'}")
+        print(f"화살 개수: {f'{self.agent.count_arrow}'}")
         print(f"금 보유: {'예' if self.agent.has_gold else '아니오'}")
 
         # 최근 메시지

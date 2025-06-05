@@ -26,7 +26,6 @@ class Environment:
     max_pits: int = 2  # 최대 Pit 수
 
     # 게임 상태
-    is_wumpus_killed: bool = False
     score: int = 0
 
     # 격자 정보 (Cell의 2차원 배열)
@@ -73,7 +72,7 @@ class Environment:
         gold_r, gold_c = random.choice(available_cells)
         self.grid[gold_r][gold_c].has_gold = True
 
-    def get_percept(self, location: Location, bump: bool = False) -> Percept:
+    def get_percept(self, location: Location, bump: bool = False, scream: bool = False) -> Percept:
         """주어진 위치에서의 감각 정보를 반환
 
         Args:
@@ -100,7 +99,7 @@ class Environment:
             stench=stench,
             breeze=breeze,
             glitter=glitter,
-            scream=self.is_wumpus_killed,
+            scream=scream,
             bump=bump,
         )
 
@@ -159,7 +158,6 @@ class Environment:
                 current_col += dc
                 if self.grid[current_row][current_col].has_wumpus:
                     self.grid[current_row][current_col].has_wumpus = False
-                    self.is_wumpus_killed = True
                     score_delta -= 10  # 화살 사용 페널티
                     return True, "Wumpus를 죽였습니다!", score_delta
 
