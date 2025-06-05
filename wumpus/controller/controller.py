@@ -42,6 +42,27 @@ class Controller:
 
         # 환경과 에이전트 초기화
         self.env = Environment()
+        
+        #test1
+        #self.env.set_map([Location(1,2), Location(2,1)],
+        #                 [Location(4,4)],
+        #                 Location(3,4),
+        #                 Location(1,1)
+        #                )
+        
+        #test2
+        #self.env.set_map([Location(2,3), Location(1,3)],
+        #                       [Location(3,2), Location(3,1)],
+        #                       Location(3,4),
+        #                       Location(1,1)
+        #                   )
+
+        #test3
+        #self.env.set_map([Location(1,2), Location(4,2)],
+        #                 [Location(2,1), Location(3,1)],
+        #                 Location(4,1),
+        #                 Location(1,1)
+        #                )
         self.agent = Agent()
 
         print("새로운 게임을 시작합니다!")
