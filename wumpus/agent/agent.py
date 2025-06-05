@@ -374,26 +374,26 @@ class Agent:
             return None # 경로 없음 or 현재위치가 목표 위치의 한칸 전
         
         next_cell = path[1] #path[0]는 현재 위치
-        target_cell = path[len(path) - 1]
+        target_cell = path[len(path) - 1] #화살을 쏘았을 때, 맞춰야하는 목표 셀
 
         delta_row = next_cell.row - self.location.row
         delta_col = next_cell.col - self.location.col
 
-        target_direction = next(
+        next_cell__direction = next(
             (d for d in Direction if d.delta == (delta_row, delta_col)),
             None
         )
 
-        if target_direction is None:
+        if next_cell__direction is None:
             print("DEBUG: 방향 계산 실패 _get_next_action_towards")
             return None
         
-        if self.direction != target_direction:
-            return Action.TURN_RIGHT  # 단순히 방향 맞춤
+        if self.direction != next_cell__direction:
+            return Action.TURN_RIGHT  # 다음 셀로 이동하기 위해 방향 맞춤
 
         for adj in self.location.get_adjacent():
-            if adj == target_cell:
-                return Action.SHOOT_ARROW
+            if adj == target_cell and adj == next_cell:
+                return Action.SHOOT_ARROW   # 다음 셀을 향하고있으면서, 다음셀이 목표셀이라면
         
         return Action.FORWARD
 

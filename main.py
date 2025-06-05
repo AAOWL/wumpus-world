@@ -76,8 +76,7 @@ def main():
 
     while True:
         # 새 게임 시작 여부 확인
-        start = "y"
-        # input("\n새 게임을 시작하시겠습니까? (y/n): ")
+        start = input("\n새 게임을 시작하시겠습니까? (y/n): ")
         if start.lower() != "y":
             print("\n게임을 종료합니다. 안녕히 가세요!")
             sys.exit(0)
