@@ -156,7 +156,8 @@ class Agent:
           1) 금을 가지고 있다면 → 되돌아가기(백트래킹) 또는 CLIMB
           2) 현재 위치에 금이 반짝거리면 → GRAB_GOLD
           3) 인접셀에 탐험 가능한 곳이 있다면 -> get_exploration_cation()
-          4) 그 외 백트래킹 모드 → get_backtrack_action()
+          4) path_stack(되돌아 갈 곳)이 있고, 사냥중이 아니라면: 백트래킹
+          5) path_stack이 없다면 사냥모드
         """
         
         # 1) 금을 이미 가지고 있다면
@@ -386,6 +387,14 @@ class Agent:
         return Action.FORWARD
 
     def _set_mode(self, backtracking: bool, hunting: bool) -> None:
+        """
+            backtrack True일때
+                -  path_stack을 따라 이전칸응로 되돌아 가기 위해 방향전환/이동
+            hunting True일때
+                -  wumpus에게 화살을 맞추기 위해 방향전환/이동/화살발사
+
+            인접셀중 방문 하지 않은 셀이 존재한다면 두 모두 다 False처리.
+        """
         self.is_backtracking = backtracking
         self.is_hunting = hunting
 
