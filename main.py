@@ -34,6 +34,7 @@ def print_title():
     print("=" * 60 + "\n")
 
 
+# 안쓰이므로 삭제 예정
 def print_help():
     """도움말 출력"""
     help_text = """
@@ -50,6 +51,7 @@ def print_help():
     print(help_text)
 
 
+# 안쓰이므로 삭제 예정
 def get_action(command: str) -> Optional[Action]:
     """사용자 입력을 Action으로 변환
 

@@ -65,7 +65,7 @@ class Knowledge_base:
             [Knowledge_Cell() for _ in range(self.size)] for _ in range(self.size)
         ]
 
-    def update_with_percept(self, location: Location, percept: Percept) -> None:
+    def update_with_percept(self, location: Location, direction: Direction, percept: Percept) -> None:
         """
         현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"
             - 현재 위치를 방문 및 safe 처리
@@ -73,14 +73,24 @@ class Knowledge_base:
             - Breeze/Stench 감지시 인접셀의 possible_pit/possible_wumpus 가중치 증가
             - 둘 다 없으면 인접한 모든 셀 safe 마킹
         """
-        # 1) 현재 위치 마킹
-        self._mark_current_as_visited_and_safe(location)
+        # Scream 발생시 바라보고 있는 방향의 wumpus를 삭제
+        if percept.scream:
+            self.delete_wumpus(location, direction,  percept)
 
-        # 2) 유효한 인접 셀 필터링 (pit 또는 wumpus가 존재 할 수 있는 위치
-        valid_adjacent = self._get_valid_adjacent_cells(location)
+        # bump 발생시 W 표시
+        if percept.bump:
+            self.mark_wall(location, direction,  percept)
 
-        # 3) percept에 따른 인접 셀 업데이트
-        self._apply_breeze_and_stench(valid_adjacent, percept)
+        # possible_wunpus/pit 증가는 한번만
+        if not self.grid[location.row][location.col].visited:
+            # 1) 현재 위치 마킹
+            self._mark_current_as_visited_and_safe(location)
+
+            # 2) 유효한 인접 셀 필터링 (wumpus/pit이 존재 할 수 있는 위치)
+            valid_adjacent = self._get_valid_adjacent_cells(location)
+
+            # 3) percept에 따른 인접 셀 업데이트
+            self._apply_breeze_and_stench(valid_adjacent, percept)
 
     def get_adjacent_cells(self, location: Location) -> List[Location]:
         """
@@ -181,8 +191,7 @@ class Knowledge_base:
 
         return
 
-    def mark_wall(
-        self, location: Location, percept: Percept, direction: Direction
+    def mark_wall(self, location: Location, direction: Direction, percept: Percept 
     ) -> None:
         """
         Percept에 bump가 존재하면 location의 direction방향 앞칸을 벽으로 표시
@@ -204,20 +213,24 @@ class Knowledge_base:
                 
             return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
 
-    def delete_wumpus(self, location: Location, direction: Direction) -> None:
-        current_row, current_col = location.row, location.col
-        dr, dc = direction.delta
+    def delete_wumpus(self, location: Location, direction: Direction, percept: Percept) -> None:
+        if percept.scream:
+            current_row, current_col = location.row, location.col
+            dr, dc = direction.delta
 
-        while (
-            0 <= current_row + dr < self.size and 0 <= current_col + dc < self.size
-        ):
-            current_row += dr
-            current_col += dc
-            if self.grid[current_row][current_col].unsafe and self.grid[current_row][current_col].possible_wumpus > 0:
-                self.grid[current_row][current_col].unsafe = False
-                self.grid[current_row][current_col].safe = True
-                self.grid[current_row][current_col].possible_wumpus = 0
-                return
+            while (
+                0 <= current_row + dr < self.size and 0 <= current_col + dc < self.size
+            ):
+                current_row += dr
+                current_col += dc
+                if self.grid[current_row][current_col].unsafe and self.grid[current_row][current_col].possible_wumpus > 0:
+                    self.grid[current_row][current_col].unsafe = False
+                    self.grid[current_row][current_col].safe = True
+                    self.grid[current_row][current_col].possible_wumpus = 0
+                    return
+                
+        else:
+            return
             
     def _print_knowledge_base(self) -> None:
         """

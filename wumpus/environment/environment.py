@@ -31,6 +31,12 @@ class Environment:
     # 격자 정보 (Cell의 2차원 배열)
     grid: List[List[Cell]] = field(default_factory=list)
 
+    # percept 관련 정보 perform_action을 통해 변화 
+    # 이전 행동에서 bump가 발생했다 -> is_bump는 True
+    # 이전 행동에서 scream이 발생했다 -> is_scream = Trus
+    is_bump: bool = False
+    is_scream: bool = False
+
     def __post_init__(self):
         """환경 초기화: 격자 생성 및 객체 배치"""
         # 빈 격자 생성
@@ -72,7 +78,7 @@ class Environment:
         gold_r, gold_c = random.choice(available_cells)
         self.grid[gold_r][gold_c].has_gold = True
 
-    def get_percept(self, location: Location, bump: bool = False, scream: bool = False) -> Percept:
+    def get_percept(self, location: Location) -> Percept:
         """주어진 위치에서의 감각 정보를 반환
 
         Args:
@@ -99,8 +105,8 @@ class Environment:
             stench=stench,
             breeze=breeze,
             glitter=glitter,
-            scream=scream,
-            bump=bump,
+            scream=self.is_scream,
+            bump=self.is_bump,
         )
 
     def perform_action(
@@ -124,6 +130,10 @@ class Environment:
 
         score_delta = -1  # 기본적으로 모든 행동은 -1점
 
+        # 이전 행동으로 발생했던 신호 처리
+        self.is_bump = False
+        self.is_scream = False
+
         if action == Action.FORWARD:
             # 새로운 위치 계산
             new_location = agent_location.move(agent_direction)
@@ -131,6 +141,7 @@ class Environment:
 
             # 이동 가능 여부 확인
             if not (0 <= new_row < self.size and 0 <= new_col < self.size):
+                self.is_bump = True
                 return False, "벽에 부딪혔습니다.", score_delta
 
             # 에이전트 이동
@@ -159,6 +170,7 @@ class Environment:
                 if self.grid[current_row][current_col].has_wumpus:
                     self.grid[current_row][current_col].has_wumpus = False
                     score_delta -= 10  # 화살 사용 페널티
+                    self.is_scream = True
                     return True, "Wumpus를 죽였습니다!", score_delta
 
             score_delta -= 10  # 화살 사용 페널티

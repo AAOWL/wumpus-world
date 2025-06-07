@@ -44,20 +44,8 @@ class Agent:
         현재 위치에서 받은 Percept를 바탕으로
             - Knowledge_base 업데이트
         """
-        # Scream 발생시 바라보고 있는 방향의 wumpus를 삭제
-        if percept.scream:
-            self.kb.delete_wumpus(self.location, self.direction)
-
-        # bump 발생시 W 표시
-        if percept.bump:
-            self.kb.mark_wall(self.location, percept, self.direction)
-
         # kb에 percept 반영
-        row, col = self.location.row, self.location.col
-
-        cell = self.kb.grid[row][col]
-        if not cell.visited:
-            self.kb.update_with_percept(self.location, percept)
+        self.kb.update_with_percept(self.location, self.direction, percept)
 
     # ============================= agent의 행동(Action) =============================
     def perform_action(self, action: Action) -> Optional[str]:

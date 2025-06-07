@@ -26,8 +26,6 @@ class Controller:
     # 게임 구성 요소
     env: Environment = field(default_factory=Environment)
     agent: Agent = field(default_factory=Agent)
-    is_bump: bool = False
-    is_scream: bool = False
 
     # 게임 상태
     is_game_over: bool = False
@@ -44,16 +42,16 @@ class Controller:
         self.env = Environment()
         
         #test1
-        #self.env.set_map([Location(1,2), Location(2,1)],
+        # self.env.set_map([Location(1,2), Location(2,1)],
         #                 [Location(4,4)],
-        #                 Location(3,4),
-        #                 Location(1,1)
-        #                )
+        #                Location(3,4),
+        #               Location(1,1)
+        #             )
         
         #test2
-        #self.env.set_map([Location(2,3), Location(1,3)],
+        # elf.env.set_map([Location(2,3), Location(1,3)],
         #                       [Location(3,2), Location(3,1)],
-        #                       Location(3,4),
+        #                      Location(3,4),
         #                       Location(1,1)
         #                   )
 
@@ -107,18 +105,17 @@ class Controller:
             return True
 
         # 3) percept 수집 + KB 업데이트
-        percept = self.env.get_percept(self.agent.location, bump=self.is_bump, scream=self.is_scream)
+        percept = self.env.get_percept(self.agent.location)
         self.agent.update_state_with_percept(percept)
 
         # 4) KB 출력 (디버깅)
         self.agent.kb._print_knowledge_base()
 
-        # 5) 행동 결정 로직. 
-        # 화살 사용 로직 X 구현필요 -> gold가 없는 상태로 시작지점(1,1)에 돌아왔다면, has_wumpus가 가장 높은 곳으로 이동하여 화살사용 하면 될듯
+        # 5) 행동 결정 로직.
         action = self.agent.decide_next_action(percept)
 
         # 6) 행동 수행, bump 여부 판단
-        success, self.is_bump , self.is_scream = self._process_action(action)  # type: ignore
+        success = self._process_action(action)  # type: ignore
         
         # 7) agent 이동 한/ 사망 체크
         if self.env.check_for_death(self.agent.location):
@@ -131,7 +128,7 @@ class Controller:
 
         # 9) 스텝 한계 체크
         return self.check_step_limit()
-
+    # 쓰이지 않으므로 삭제 예정
     def run_game(self) -> Tuple[bool, int]:
         """게임을 끝까지 실행
 
@@ -147,8 +144,8 @@ class Controller:
 
         return self._get_game_result()
 
-    def _process_action(self, action: Action) -> tuple[bool, bool, bool]:
-        """에이전트의 행동을 처리
+    def _process_action(self, action: Action) -> bool:
+        """에이전트의 행동을 environment객체와 agent객체에 전달/처리
 
         Args:
             action: 수행할 행동
@@ -160,9 +157,6 @@ class Controller:
             action, self.agent.location, self.agent.direction
         )
 
-        is_bump = action == Action.FORWARD and message == "벽에 부딪혔습니다."
-        is_scream = action == Action.SHOOT_ARROW and message == "Wumpus를 죽였습니다!"
-
         # 결과 메시지 저장
         if message:
             self.messages.append(f"Step {self.total_steps + 1}: {message}")
@@ -170,7 +164,7 @@ class Controller:
         # 점수 업데이트
         self.env.score += score_delta
 
-        # 행동이 성공한 경우, 에이전트 상태 업데이트
+        # 행동이 성공한 경우, agent 행동 수행
         if success:
             if action == Action.FORWARD:
                 # 새 위치로 이동
@@ -192,7 +186,7 @@ class Controller:
                 # 탈출 성공
                 self.is_game_over = True
 
-        return success, is_bump, is_scream
+        return success
 
     def _print_game_state(self) -> None:
         """현재 게임 상태를 출력"""
