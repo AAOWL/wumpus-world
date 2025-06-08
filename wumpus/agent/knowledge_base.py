@@ -13,6 +13,9 @@ class Knowledge_Cell:
     visited: bool = False  # agent가 직접 이동하여 안전함이 확인됨.
     possible_wumpus: int = 0
     possible_pit: int = 0
+
+    no_pit_for_sure: bool = False
+    no_wumpus_for_sure: bool = False
     
     safe: bool = False  # agent가 percept를 했을 때 breeze와 stench가 나타나지 않았다면 인접셀에 표기(직접 가 보진 않았지만 안전함이 입증됨)
     
@@ -152,10 +155,23 @@ class Knowledge_base:
         self, adjacent_cells: List[Location], percept: Percept
     ) -> None:
         """
-        인접 셀 중 valid한 셀들에 대해서
-            - breeze가 있으면 possible_pit += 1, 없으면 possible_pit = 0
-            - stench가 있으면 possible_wumpus += 1, 없으면 possible_wumpus = 0
-        """
+            1) breeze가 없다면:
+            → 인접한 모든 셀에 pit이 없다고 확정 (no_pit_for_sure = True)
+            → 해당 셀은 이후 possible_pit이 증가하지 않음
+
+            2) breeze가 있으면서 해당 셀이 확정된 safe가 아니면:
+                → possible_pit += 1
+
+            3) stench가 없다면:
+                → 인접한 모든 셀에 wumpus가 없다고 확정 (no_wumpus_for_sure = True)
+                → 이후 possible_wumpus 증가하지 않음
+
+            4) stench가 있으면서 해당 셀이 확정된 safe가 아니면:
+                → possible_wumpus += 1
+
+            5) breeze와 stench 둘 다 없다면:
+                → 완전히 안전한 셀로 간주 (safe = True)
+            """
         for loc in adjacent_cells:
             row, col = loc.row, loc.col
             cell = self.grid[row][col]
@@ -165,20 +181,31 @@ class Knowledge_base:
                 continue
 
             # 1) pit 가능성 업데이트
-            if percept.breeze:
-                cell.possible_pit += 1
-            else:
+            # breeze가 없으면 인접 칸에는 pit이 없다고 '확실히' 판단
+            if not percept.breeze:
                 cell.possible_pit = 0
+                cell.no_pit_for_sure = True # Pit이 없다고 확정
 
-            # 2) wumpus 가능성 업데이트
-            if percept.stench:
-                cell.possible_wumpus += 1
-            else:
+            # 2) breeze가 있지만 pit이 없다고 확정되지 않았으면 가능성 증가
+            elif not cell.no_pit_for_sure: 
+                cell.possible_pit += 1
+
+
+            # 3) wumpus 가능성 업데이트
+            # stench가 없으면 인접 칸에는 wumpus가 없다고 '확실히' 판단
+            if not percept.stench:
                 cell.possible_wumpus = 0
+                cell.no_wumpus_for_sure = True # Wumpus가 없다고 확정
 
-            # 3) 양쪽 모두 없으면(= 깨끗한 셀이면) 안전 마킹
+             # 4) stench가 있지만 wumpus가 없다고 확정하지 않았다면 가능성 증가
+            elif not cell.no_wumpus_for_sure:
+                cell.possible_wumpus += 1
+
+            # 5) 양쪽 모두 없으면 안전 마킹
             if not percept.breeze and not percept.stench:
                 cell.safe = True
+                cell.no_pit_for_sure = True
+                cell.no_wumpus_for_sure = True
 
     def mark_unsafe(self, location: Location) -> None:
         """
