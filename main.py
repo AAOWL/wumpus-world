@@ -34,44 +34,6 @@ def print_title():
     print("=" * 60 + "\n")
 
 
-# 안쓰이므로 삭제 예정
-def print_help():
-    """도움말 출력"""
-    help_text = """
-사용 가능한 명령어:
-    w: 앞으로 이동
-    a: 왼쪽으로 회전
-    d: 오른쪽으로 회전
-    s: 화살 발사
-    g: 금 줍기
-    c: 탈출하기
-    h: 도움말 보기
-    q: 게임 종료
-    """
-    print(help_text)
-
-
-# 안쓰이므로 삭제 예정
-def get_action(command: str) -> Optional[Action]:
-    """사용자 입력을 Action으로 변환
-
-    Args:
-        command: 사용자가 입력한 명령어
-
-    Returns:
-        Optional[Action]: 해당하는 Action 또는 None
-    """
-    action_map = {
-        "w": Action.FORWARD,
-        "a": Action.TURN_LEFT,
-        "d": Action.TURN_RIGHT,
-        "s": Action.SHOOT_ARROW,
-        "g": Action.GRAB_GOLD,
-        "c": Action.CLIMB,
-    }
-    return action_map.get(command.lower())
-
-
 def main():
     """게임 메인 함수"""
     print_title()

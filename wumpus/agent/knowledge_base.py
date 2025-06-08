@@ -152,7 +152,7 @@ class Knowledge_base:
         return valid
 
     def _apply_breeze_and_stench(
-        self, adjacent_cells: List[Location], percept: Percept
+self, adjacent_cells: List[Location], percept: Percept
     ) -> None:
         """
             1) breeze가 없다면:

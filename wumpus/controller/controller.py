@@ -202,7 +202,7 @@ class Controller:
 
         # 기본 정보
         print(f"진행 단계: {self.total_steps}")
-        print(f"현재 점수: {self.env.score}")
+        # print(f"현재 점수: {self.env.score}")
         print(f"에이전트 위치: {self.agent.location}")
         print(f"에이전트 방향: {self.agent.direction.name}")
         print(f"화살 개수: {f'{self.agent.count_arrow}'}")
@@ -268,7 +268,7 @@ class Controller:
         print("=== 게임 종료 ===")
         print("=" * 40)
         print(f"총 진행 단계: {self.total_steps}")
-        print(f"최종 점수: {self.env.score}")
+        # print(f"최종 점수: {self.env.score}")
         print(f"결과: {'승리!' if is_victory else '패배...'}")
 
         if is_victory:
