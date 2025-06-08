@@ -71,6 +71,7 @@ class Agent:
 
     def _move_forward(self) -> Optional[str]:
         """현재 방향으로 한 칸 전진
+           금을 가지고 있거나 백트래킹 중이면 경로 저장 생략
 
         Returns:
             str: 이동 실패 시 실패 이유
@@ -157,7 +158,7 @@ class Agent:
           2) 현재 위치에 금이 반짝거리면 → GRAB_GOLD
           3) 인접셀에 탐험 가능한 곳이 있다면 -> get_exploration_cation()
           4) path_stack(되돌아 갈 곳)이 있고, 사냥중이 아니라면: 백트래킹
-          5) path_stack이 없다면 사냥모드
+          5) path_stack(되돌아 갈 곳)이 없다 -> 가능한 모든 셀을 방문했다 -> 사냥모드
         """
         
         # 1) 금을 이미 가지고 있다면
@@ -191,7 +192,7 @@ class Agent:
         """
         path_stack에서 다음 위치를 꺼내 현재 에이전트의 위치와 방향을 기반으로
         백트래킹을 위한 다음 액션(TURN_RIGHT 또는 FORWARD)을 결정.
-
+        
         Returns:
             Optional[Action]: 수행할 액션 (TURN_RIGHT, FORWARD) 또는
                              더 이상 돌아갈 경로가 없다면 None.
@@ -208,7 +209,7 @@ class Agent:
         print(f"DEBUG: {target_location}으로 돌아갑니다.")
 
         # 현재 위치에서 목표 위치(이전 위치)로 가기 위한 방향을 계산
-        # 예: 현재 (1,1), target (0,1) -> delta_row = -1, delta_col = 0 (NORTH)
+        # 예: 현재 (2,1), target (1,1) -> delta_row = -1, delta_col = 0 (NORTH)
         delta_row = target_location.row - self.location.row
         delta_col = target_location.col - self.location.col
 
@@ -278,6 +279,13 @@ class Agent:
         return Action.FORWARD
 
     def get_hunt_action(self) -> Optional[Action]:
+        """
+            possible_wumpus가 가장 큰 cell의 위치를 target_location에 저장.
+            target_location까지의 안전한 루트를 path에 저장. 
+            # 예: 목표 위치의 인접 셀까지 안전하게 이동한 뒤 화살 발사
+
+            get_next_action_towards()를 통해, 계산된 path를 따라서 목표 위치의 인접셀까지 접근하고 화살 사용.
+        """
         target_location = self._find_max_possible_wumpus_location()
 
         path = self._find_safe_path(target_location)

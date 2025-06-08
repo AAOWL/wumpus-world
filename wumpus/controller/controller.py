@@ -61,6 +61,13 @@ class Controller:
         #                 Location(4,1),
         #                 Location(1,1)
         #                )
+
+        #test4
+        #self.env.set_map([Location(1,3), Location(3,3)],
+        #                 [Location(2,2), Location(4,2)],
+        #                 Location(4,4),
+        #                 Location(1,1)
+        #                )
         self.agent = Agent()
 
         print("새로운 게임을 시작합니다!")
@@ -74,7 +81,6 @@ class Controller:
         2) 이전 위치에서 Agent가 사망했는지 확인하고, 
         사망 상태라면 _handle_death_and_respawn()로 부활 처리 후 True 반환(게임 계속).
         3) 현재 위치에서 환경으로부터 Percept을 반환.
-            - bump 여부는 self.is_bump 플래그를 사용해 전달.
             - 받은 Percept를 agent.update_state_with_percept()로 KB에 모두 반영.
         4) 최신 지식 베이스를 출력(self.agent.kb._print_knowledge_base()).
         5) 에이전트의 decide_next_action(percept)를 호출해 다음 행동을 결정.
@@ -150,7 +156,7 @@ class Controller:
         Args:
             action: 수행할 행동
         Returns:
-            tuple[bool, bool]: (행동 성공 여부, bump 발생 여부)
+             bool: 행동 성공 여부
         """
         # 환경에 행동 수행 요청
         success, message, score_delta = self.env.perform_action(
@@ -277,7 +283,7 @@ class Controller:
     def _handle_death_and_respawn(self) -> bool:
         
         """
-        ** 해당 메서드도 total_steps를 증가시킨다. **
+        ** 해당 메서드는 total_steps를 증가시킨다. **
 
         Agent가 죽었는지 확인. 죽었다면
             - 죽은 위치에 kb에 unsafe 표기.

@@ -31,9 +31,10 @@ class Environment:
     # 격자 정보 (Cell의 2차원 배열)
     grid: List[List[Cell]] = field(default_factory=list)
 
-    # percept 관련 정보 perform_action을 통해 변화 
-    # 이전 행동에서 bump가 발생했다 -> is_bump는 True
-    # 이전 행동에서 scream이 발생했다 -> is_scream = Trus
+    # percept 관련 플래그 (perform_action 이후 설정됨)
+    # - bump가 발생한 경우: is_bump = True
+    # - scream이 발생한 경우: is_scream = True
+    # perform_action에 의해서 bump/scream이 설정되었다면 다음 percept의 bump/scream이 True로 전달됨.
     is_bump: bool = False
     is_scream: bool = False
 
@@ -112,8 +113,10 @@ class Environment:
     def perform_action(
         self, action: Action, agent_location: Location, agent_direction: Direction
     ) -> Tuple[bool, Optional[str], int]:
-        """에이전트의 행동을 처리
-           오직 행동만 처리
+        """
+        에이전트의 행동을 처리하고 환경 상태를 갱신합니다.
+            - 이동, 화살 발사, 금 획득, 탈출 등의 효과를 반영
+            - is_scream, is_bump 등의 Percept 관련 상태도 함께 갱신됨
         Args:
             action: 수행할 행동
             agent_location: 현재 에이전트의 위치
@@ -197,7 +200,9 @@ class Environment:
 
     def check_for_death(self, agent_location: "Location") -> bool:
         """
-        에이전트가 현재 위치에서 죽었는지 확인. (Wumpus나 Pit 존재 여부만 판단)
+        에이전트가 현재 위치에서 죽었는지 판단합니다.
+        - Wumpus 또는 Pit이 agent의 현재 위치에 있는 경우 True 반환
+        - 죽음 시 콘솔에 관련 메시지 출력
         """
         current_row, current_col = agent_location.row - 1, agent_location.col - 1
 
@@ -232,6 +237,8 @@ class Environment:
         gold_location: Location,
         agent_location: Location = Location(1, 1),
     ) -> None:
+        # - 모든 위치는 1-based 좌표로 입력되며, 내부적으로 0-based로 변환됩니다.
+
         """
         테스트용 맵을 직접 설정합니다.
 

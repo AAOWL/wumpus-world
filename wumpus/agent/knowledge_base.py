@@ -70,7 +70,7 @@ class Knowledge_base:
 
     def update_with_percept(self, location: Location, direction: Direction, percept: Percept) -> None:
         """
-        현재 위치에서의 감각 정보를 바탕으로 지식 업데이트"
+        현재 위치에서의 감각 정보를 바탕으로 지식 업데이트
             - 현재 위치를 방문 및 safe 처리
             - 인접 셀 중 유효 셀들 필터링
             - Breeze/Stench 감지시 인접셀의 possible_pit/possible_wumpus 가중치 증가
@@ -159,18 +159,18 @@ class Knowledge_base:
             → 인접한 모든 셀에 pit이 없다고 확정 (no_pit_for_sure = True)
             → 해당 셀은 이후 possible_pit이 증가하지 않음
 
-            2) breeze가 있으면서 해당 셀이 확정된 safe가 아니면:
-                → possible_pit += 1
+            2) breeze가 있으면서 pit이 없다고 확정되지 않은 경우:
+            → possible_pit += 1
 
             3) stench가 없다면:
-                → 인접한 모든 셀에 wumpus가 없다고 확정 (no_wumpus_for_sure = True)
-                → 이후 possible_wumpus 증가하지 않음
+            → 인접한 모든 셀에 wumpus가 없다고 확정 (no_wumpus_for_sure = True)
+            → 이후 possible_wumpus 증가하지 않음
 
-            4) stench가 있으면서 해당 셀이 확정된 safe가 아니면:
-                → possible_wumpus += 1
+            4) stench가 있으면서 wumpus가 없다고 확정되지 않은 경우:
+            → possible_wumpus += 1
 
             5) breeze와 stench 둘 다 없다면:
-                → 완전히 안전한 셀로 간주 (safe = True)
+            → 완전히 안전한 셀로 간주 (safe = True)
             """
         for loc in adjacent_cells:
             row, col = loc.row, loc.col
@@ -241,6 +241,10 @@ class Knowledge_base:
             return  # bump가 발생하면 더 이상 주변 cell을 탐색하지 않고 돌아감
 
     def delete_wumpus(self, location: Location, direction: Direction, percept: Percept) -> None:
+        """
+        scream이 감지되면, 현재 방향을 따라 Wumpus가 있을 가능성이 있었던 unsafe 셀을 찾아
+        그 셀을 safe로 마킹하고 possible_wumpus를 0으로 초기화함.
+        """
         if percept.scream:
             current_row, current_col = location.row, location.col
             dr, dc = direction.delta
