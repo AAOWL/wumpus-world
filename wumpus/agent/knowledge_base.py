@@ -262,7 +262,17 @@ self, adjacent_cells: List[Location], percept: Percept
                 
         else:
             return
-            
+    
+    def mark_no_wumpus_along_direction(self, location: Location, direction: Direction):
+        """화살이 날아간 방향의 모든 칸에 possible_wumpus = 0 표시"""
+        cur = location
+        dr, dc = direction.delta
+        while True:
+            cur = Location(cur.row + dr, cur.col + dc)
+            if cur.row > 5 or cur.row < 0 or cur.col > 5 or cur.col < 0: break
+            cell = self.grid[cur.row][cur.col]
+            cell.possible_wumpus = 0
+    
     def _print_knowledge_base(self) -> None:
         """
         DEBUG용

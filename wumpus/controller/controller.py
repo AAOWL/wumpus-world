@@ -68,6 +68,13 @@ class Controller:
         #                 Location(4,4),
         #                 Location(1,1)
         #                )
+
+        #test5
+        #self.env.set_map([Location(2,1), Location(1,3)],
+        #                 [Location(1,2)],
+        #                 Location(4,3),
+        #                 Location(1,1)
+        #                )
         self.agent = Agent()
 
         print("새로운 게임을 시작합니다!")
@@ -119,10 +126,11 @@ class Controller:
 
         # 5) 행동 결정 로직.
         action = self.agent.decide_next_action(percept)
-
+        
         # 6) 행동 수행, bump 여부 판단
         success = self._process_action(action)  # type: ignore
-        
+        self.agent.last_action = action
+
         # 7) agent 이동 한/ 사망 체크
         if self.env.check_for_death(self.agent.location):
             self.agent.is_alive = False  # agent 상태 사망으로 변경

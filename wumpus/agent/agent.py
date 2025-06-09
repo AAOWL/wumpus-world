@@ -37,7 +37,7 @@ class Agent:
     kb: Knowledge_base = field(default_factory=Knowledge_base)
 
     path_stack: List[Location] = field(default_factory=list)
-
+    last_action: Optional[Action] = None
     # ============================= KB 갱신 =============================
     def update_state_with_percept(self, percept: Percept) -> None:
         """
@@ -45,7 +45,14 @@ class Agent:
             - Knowledge_base 업데이트
         """
         # kb에 percept 반영
-        self.kb.update_with_percept(self.location, self.direction, percept)
+        self.kb.update_with_percept(self.location, self.direction, percept) # type: ignore
+
+        if self.last_action == Action.SHOOT_ARROW:
+            if not percept.scream:
+                # 화살을 쐈는데 scream이 없었다 → 해당 방향에 Wumpus 없음
+                self.kb.mark_no_wumpus_along_direction(self.location, self.direction)
+            # 다시 초기화
+            self.last_action = None
 
     # ============================= agent의 행동(Action) =============================
     def perform_action(self, action: Action) -> Optional[str]:
