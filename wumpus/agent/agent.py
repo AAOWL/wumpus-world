@@ -237,7 +237,7 @@ class Agent:
             return None
 
         if self.direction != target_direction:
-            return Action.TURN_RIGHT  # 방향 맞추기
+            return self._get_turn_action(target_direction)  # 방향 맞추기
 
         else:
             self.path_stack.pop()
@@ -280,7 +280,7 @@ class Agent:
         
         # 현재 방향과 타겟 방향 일치시킬 때까지 회전 (오른쪽 우선)
         if self.direction != target_direction:
-            return Action.TURN_RIGHT  # 방향 맞추기
+            return self._get_turn_action(target_direction)  # 방향 맞추기
 
         # 이동 시도
         return Action.FORWARD
@@ -393,7 +393,7 @@ class Agent:
             return None
         
         if self.direction != next_cell__direction:
-            return Action.TURN_RIGHT  # 다음 셀로 이동하기 위해 방향 맞춤
+            return self._get_turn_action(next_cell__direction)  # 다음 셀로 이동하기 위해 방향 맞춤
 
         for adj in self.location.get_adjacent():
             if adj == target_cell and adj == next_cell:
@@ -412,6 +412,26 @@ class Agent:
         """
         self.is_backtracking = backtracking
         self.is_hunting = hunting
+
+    def _get_turn_action(self, target_dircetion: Direction) -> Action:
+        """
+        현재 self.directoin에서 target_dircetion으로 가기 위한 최소 회전(Left 또는 Right) 액션을 반환
+        """
+
+        curr = self.direction.value
+        tgt = target_dircetion.value
+
+        diff = (tgt - curr) % 4
+
+        if diff == 1:
+            return Action.TURN_RIGHT
+        elif diff == 3:
+            return Action.TURN_LEFT
+        elif diff == 2:
+            return Action.TURN_RIGHT
+        else:
+            # diff == 0이므로 이미 일치함.
+            print("오류 _get_turn_action")
 
     # ============================= Debug용 =============================
     def print_path_stack_status(self):
